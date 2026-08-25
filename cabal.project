@@ -6,3 +6,8 @@ packages:
 index-state: 2026-06-29T00:01:59Z
 tests: True
 test-show-details: direct
+
+constraints:
+  -- rel8 fails on semialign-1.4
+  -- See: https://github.com/circuithub/rel8/issues/402
+  semialign <1.4

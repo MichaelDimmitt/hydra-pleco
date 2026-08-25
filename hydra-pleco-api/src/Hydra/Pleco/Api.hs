@@ -5,19 +5,23 @@ module Hydra.Pleco.Api
     HealthJSON,
     Health (..),
     Subscription (..),
+    JobsetEventApi(..),
     JobsetEvent (..),
     EventType (..),
     Project (..),
     Jobset (..),
     hydraApi,
     hydraOpenApi,
+    jobsetEventApi,
   ) where
 
 import Hydra.Pleco.Api.Event
   ( EventType (..),
     Jobset (..),
     JobsetEvent (..),
+    JobsetEventApi (..),
     Project (..),
+    jobsetEventApi,
   )
 
 import Data.Aeson

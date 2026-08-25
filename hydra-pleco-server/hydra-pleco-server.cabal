@@ -16,6 +16,7 @@ tested-with: ghc ==9.10.*
 common common-options
   build-depends:
     base >=4.16 && <5,
+    exceptions,
     hydra-pleco-api,
     relude,
     unliftio,
@@ -56,11 +57,23 @@ library
   hs-source-dirs: src
   exposed-modules:
     Hydra.Pleco.Server
+    Hydra.Pleco.Server.DB
+    Hydra.Pleco.Server.DB.Hydra
+    Hydra.Pleco.Server.Monad
+    Hydra.Pleco.Server.Webhook
+    Hydra.Pleco.Server.Webhook.DB
 
   build-depends:
     aeson,
+    hasql,
+    hasql-notifications,
+    hasql-pool,
+    http-client,
     katip,
+    rel8,
     servant,
+    servant-client,
+    servant-client-core,
     servant-server,
     servant-swagger-ui,
     text,

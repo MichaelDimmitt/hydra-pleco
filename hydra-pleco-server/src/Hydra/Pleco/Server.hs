@@ -3,133 +3,66 @@ module Hydra.Pleco.Server
     PlecoServerEnv (..),
     runPlecoServerT,
     mkPlecoServerEnv,
-    runApp,
-    app,
+    runServer,
   ) where
 
-import Hydra.Pleco.Api (Health (..), HydraApi (..), HydraApp (..), Subscription, WebhooksApi (..), hydraOpenApi)
+import Hydra.Pleco.Api (Health (..), HydraApi (..), HydraApp (..))
+import Hydra.Pleco.Api qualified as Api
+import Hydra.Pleco.Server.Monad
 
-import Control.Exception (finally)
-import Data.Text.Lazy.Builder (fromText)
-import Katip
-  ( ItemFormatter,
-    Katip,
-    KatipContext,
-    LogContexts,
-    LogEnv,
-    LogItem,
-    Namespace,
-    renderSeverity,
-    unLogStr,
-  )
+import Hydra.Pleco.Server.DB (releaseConnectionPool, testConnection)
+import Hydra.Pleco.Server.Webhook (webhooksHandler, watchHydraEvents)
 import Katip qualified
-import Katip.Core qualified as Katip
-import Katip.Format.Time (formatAsLogTime)
-import Katip.Scribes.Handle qualified as Katip
 import Network.Wai.Handler.Warp (Port, run)
 import Servant
 import Servant.Server.Generic (genericServeT)
 import Servant.Swagger.UI (swaggerSchemaUIServerT)
-import UnliftIO (MonadUnliftIO, modifyTVar)
+import UnliftIO (bracket_)
+import UnliftIO.Async qualified as Async
+import Hasql.Pool (Pool)
 
--- | The application monad stack
-newtype PlecoServerT m a = PlecoServerT {unPlecoServerT :: ReaderT PlecoServerEnv m a}
-  deriving newtype
-    ( Functor,
-      Applicative,
-      Monad,
-      MonadReader PlecoServerEnv,
-      MonadIO,
-      MonadUnliftIO
-    )
+runServer :: Port -> PlecoServerEnv -> IO ()
+runServer port env = runPlecoServerT env $ do
+  Async.mapConcurrently_
+    id
+    [ runApp port,
+      runHydraWatcher
+    ]
 
--- | The reader environment
-data PlecoServerEnv = PlecoServerEnv
-  { pseLogNamespace :: Namespace,
-    pseLogCtx :: LogContexts,
-    pseLogEnv :: LogEnv,
-    pseSubscriptions :: TVar [Subscription]
-  }
+runApp :: Port -> PlecoServerT IO ()
+runApp port = do
+  env@PlecoServerEnv{pseDbPool} <- ask
 
-instance (MonadIO io) => Katip (PlecoServerT io) where
-  getLogEnv = asks pseLogEnv
-  localLogEnv f (PlecoServerT m) =
-    PlecoServerT $
-      local
-        (\env@PlecoServerEnv {..} -> env {pseLogEnv = f pseLogEnv})
-        m
-
-instance (MonadIO io) => KatipContext (PlecoServerT io) where
-  getKatipContext = asks pseLogCtx
-
-  localKatipContext f (PlecoServerT m) =
-    PlecoServerT $
-      local (\env@PlecoServerEnv {..} -> env {pseLogCtx = f pseLogCtx}) m
-
-  getKatipNamespace = asks pseLogNamespace
-
-  localKatipNamespace f (PlecoServerT m) =
-    PlecoServerT $
-      local (\env@PlecoServerEnv {..} -> env {pseLogNamespace = f pseLogNamespace}) m
-
-runPlecoServerT :: PlecoServerEnv -> PlecoServerT m a -> m a
-runPlecoServerT env = usingReaderT env . unPlecoServerT
-
--- | Katip's built-in 'bracketFormat' copied here, with some fields omitted. The
--- following fields have been removed:
---
---  * PID
---  * Thread ID
-logFormat :: (LogItem a) => ItemFormatter a
-logFormat withColor verb Katip.Item {..} =
-  Katip.brackets nowStr
-    <> Katip.brackets (mconcat $ map fromText $ Katip.intercalateNs _itemNamespace)
-    <> Katip.brackets (fromText (renderSeverity' _itemSeverity))
-    <> Katip.brackets (fromString _itemHost)
-    <> mconcat ks
-    <> maybe mempty (Katip.brackets . fromString . Katip.locationToString) _itemLoc
-    <> fromText " "
-    <> unLogStr _itemMessage
+  Katip.logFM Katip.InfoS $ "Starting pleco-server at http://localhost:" <> show port
+  bracket_ 
+    (init' pseDbPool) 
+    (finalize pseDbPool) 
+    (liftIO $ run port (app env))
   where
-    nowStr = fromText (formatAsLogTime _itemTime)
-    ks = map Katip.brackets $ Katip.getKeys verb _itemPayload
-    renderSeverity' severity =
-      Katip.colorBySeverity withColor severity (renderSeverity severity)
+    init' :: Pool -> PlecoServerT IO ()
+    init' dbPool = do
+      -- Test connecting to the database, log and fail on exception
+      testConnection dbPool `Katip.logExceptionM` Katip.ErrorS
+      Katip.logFM Katip.InfoS $ "Connection to database '" <> "dbname=hydra" <> "' successful"
 
-mkPlecoServerEnv :: IO PlecoServerEnv
-mkPlecoServerEnv = do
-  logEnv <- Katip.initLogEnv "hydra-pleco" "production"
-  scribe <-
-    Katip.mkHandleScribeWithFormatter
-      logFormat
-      Katip.ColorIfTerminal
-      stderr
-      (Katip.permitItem Katip.InfoS)
-      Katip.V2
-  logEnv' <- Katip.registerScribe "stderr" scribe Katip.defaultScribeSettings logEnv
-  subs <- newTVarIO []
+    finalize :: Pool -> PlecoServerT IO ()
+    finalize dbPool = do
+      Katip.logFM Katip.InfoS $ "Stopped pleco-server at http://localhost:" <> show port
+      releaseConnectionPool dbPool
 
-  pure
-    PlecoServerEnv
-      { pseLogNamespace = "default",
-        pseLogCtx = mempty,
-        pseLogEnv = logEnv',
-        pseSubscriptions = subs
-      }
+runHydraWatcher :: PlecoServerT IO ()
+runHydraWatcher = do
+  Katip.logFM Katip.InfoS "Starting Hydra watcher at db=hydra"
+  watchHydraEvents
 
 app :: PlecoServerEnv -> Application
 app env = genericServeT (runPlecoServerT env) server
-
-runApp :: Port -> PlecoServerEnv -> IO ()
-runApp port env@(PlecoServerEnv {..}) = runPlecoServerT env $ do
-  Katip.logFM Katip.InfoS $ "Starting pleco-server at http://localhost:" <> show port
-  liftIO $ run port (app env) `finally` Katip.closeScribes pseLogEnv
 
 server :: ServerT (NamedRoutes HydraApp) (PlecoServerT Handler)
 server =
   HydraApp
     { api = apiServer,
-      docs = swaggerSchemaUIServerT hydraOpenApi
+      docs = swaggerSchemaUIServerT Api.hydraOpenApi
     }
 
 apiServer :: ServerT (NamedRoutes HydraApi) (PlecoServerT Handler)
@@ -141,19 +74,3 @@ apiServer =
 
 healthHandler :: PlecoServerT Handler Health
 healthHandler = pure (Health "pass")
-
-webhooksHandler :: ServerT (NamedRoutes WebhooksApi) (PlecoServerT Handler)
-webhooksHandler =
-  WebhooksApi
-    { subscribe = webhooksSubscribeHandler,
-      list = webhooksListHandler
-    }
-
-webhooksSubscribeHandler :: Subscription -> PlecoServerT Handler Subscription
-webhooksSubscribeHandler sub = do
-  subs <- asks pseSubscriptions
-  atomically $ modifyTVar subs (sub :)
-  pure sub
-
-webhooksListHandler :: PlecoServerT Handler [Subscription]
-webhooksListHandler = readTVarIO =<< asks pseSubscriptions

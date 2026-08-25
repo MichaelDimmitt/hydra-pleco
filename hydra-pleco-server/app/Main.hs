@@ -1,10 +1,8 @@
 module Main (main) where
 
-import Hydra.Pleco.Server (PlecoServerEnv (..), app, mkPlecoServerEnv, runApp)
-
-import Network.Wai.Handler.Warp (run)
+import Hydra.Pleco.Server (mkPlecoServerEnv, runServer)
 
 main :: IO ()
 main = do
   env <- mkPlecoServerEnv
-  runApp 8081 env
+  runServer 8081 env
