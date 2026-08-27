@@ -6,24 +6,23 @@ module Hydra.Pleco.Server.DB
     statement,
     newConnection,
     releaseConnection,
-
-    module Hydra
+    module Hydra,
   ) where
 
 import Hydra.Pleco.Server.DB.Hydra as Hydra
 
-import Hasql.Connection.Setting (connection, Setting)
+import Hasql.Connection (Connection)
+import Hasql.Connection qualified as Connection
+import Hasql.Connection.Setting (Setting, connection)
 import Hasql.Connection.Setting.Connection (string)
 import Hasql.Pool (Pool)
 import Hasql.Pool qualified as Pool
 import Hasql.Pool.Config qualified as Pool
-import UnliftIO.Exception (throwIO)
 import Hasql.Session (Session, statement)
-import qualified Hasql.Connection as Connection
-import Hasql.Connection (Connection)
 import System.IO.Error (userError)
+import UnliftIO.Exception (throwIO)
 
-newConnectionPool :: MonadIO io => io Pool
+newConnectionPool :: (MonadIO io) => io Pool
 newConnectionPool = liftIO $ Pool.acquire poolCfg
   where
     poolCfg =
@@ -38,26 +37,26 @@ newConnectionPool = liftIO $ Pool.acquire poolCfg
 connectionString :: Setting
 connectionString = connection (string "dbname=hydra")
 
-testConnection :: MonadIO io => Pool -> io ()
+testConnection :: (MonadIO io) => Pool -> io ()
 testConnection pool = do
   res <- liftIO $ Pool.use pool pass
   either throwIO pure res
 
-releaseConnectionPool :: MonadIO io => Pool -> io ()
+releaseConnectionPool :: (MonadIO io) => Pool -> io ()
 releaseConnectionPool = liftIO . Pool.release
 
-runSession :: MonadIO io => Pool -> Session a -> io a
+runSession :: (MonadIO io) => Pool -> Session a -> io a
 runSession pool session = do
   res <- liftIO $ Pool.use pool session
   either throwIO pure res
 
-newConnection :: MonadIO io => io Connection
+newConnection :: (MonadIO io) => io Connection
 newConnection = do
   res <- liftIO $ Connection.acquire [connectionString]
-  either 
+  either
     (throwIO . userError . maybe "Could not acquire DB connection" decodeUtf8)
     pure
     res
 
-releaseConnection :: MonadIO io => Connection -> io ()
+releaseConnection :: (MonadIO io) => Connection -> io ()
 releaseConnection = liftIO . Connection.release

@@ -26,9 +26,6 @@ import Servant.Client (AsClientT, BaseUrl, ClientEnv, ClientError, ClientM, (//)
 import Servant.Client qualified as Servant
 import Servant.Client.Generic (genericClientHoist)
 
--- TODO[sgillespie]: Remove me!
-{-# ANN module ("HLint: ignore Use newtype instead of data" :: String) #-}
-
 -- | Client application monad stack
 newtype PlecoClient a = PlecoClient {unPlecoClient :: ReaderT PlecoClientEnv ClientM a}
   deriving newtype
@@ -39,7 +36,7 @@ newtype PlecoClient a = PlecoClient {unPlecoClient :: ReaderT PlecoClientEnv Cli
       MonadIO
     )
 
-data PlecoClientEnv = PlecoClientEnv
+newtype PlecoClientEnv = PlecoClientEnv
   { pceClientEnv :: ClientEnv
   }
 

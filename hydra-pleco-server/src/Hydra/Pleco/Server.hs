@@ -10,8 +10,9 @@ import Hydra.Pleco.Api (Health (..), HydraApi (..), HydraApp (..))
 import Hydra.Pleco.Api qualified as Api
 import Hydra.Pleco.Server.Monad
 
+import Hasql.Pool (Pool)
 import Hydra.Pleco.Server.DB (releaseConnectionPool, testConnection)
-import Hydra.Pleco.Server.Webhook (webhooksHandler, watchHydraEvents)
+import Hydra.Pleco.Server.Webhook (watchHydraEvents, webhooksHandler)
 import Katip qualified
 import Network.Wai.Handler.Warp (Port, run)
 import Servant
@@ -19,7 +20,6 @@ import Servant.Server.Generic (genericServeT)
 import Servant.Swagger.UI (swaggerSchemaUIServerT)
 import UnliftIO (bracket_)
 import UnliftIO.Async qualified as Async
-import Hasql.Pool (Pool)
 
 runServer :: Port -> PlecoServerEnv -> IO ()
 runServer port env = runPlecoServerT env $ do
@@ -31,12 +31,12 @@ runServer port env = runPlecoServerT env $ do
 
 runApp :: Port -> PlecoServerT IO ()
 runApp port = do
-  env@PlecoServerEnv{pseDbPool} <- ask
+  env@PlecoServerEnv {pseDbPool} <- ask
 
   Katip.logFM Katip.InfoS $ "Starting pleco-server at http://localhost:" <> show port
-  bracket_ 
-    (init' pseDbPool) 
-    (finalize pseDbPool) 
+  bracket_
+    (init' pseDbPool)
+    (finalize pseDbPool)
     (liftIO $ run port (app env))
   where
     init' :: Pool -> PlecoServerT IO ()

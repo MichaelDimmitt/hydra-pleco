@@ -4,15 +4,15 @@ module Hydra.Pleco.Server.Webhook.DB
   ) where
 
 import Hydra.Pleco.Api
-import Hydra.Pleco.Server.DB (HydraNotification(..))
+import Hydra.Pleco.Server.DB (HydraNotification (..))
 
 -- TODO[sgillespie]: Implement me
 toHydraNotification :: JobsetEvent -> HydraNotification
-toHydraNotification JobsetEvent{..} = undefined
+toHydraNotification JobsetEvent {..} = undefined
 
 -- TODO[sgillespie]: Implement me
 fromHydraNotification :: HydraNotification -> JobsetEvent
-fromHydraNotification event = 
+fromHydraNotification event =
   let eventTy =
         case event of
           HydraEvalAdded _ _ -> EvalAdded

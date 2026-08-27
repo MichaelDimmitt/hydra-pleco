@@ -5,7 +5,7 @@ module Hydra.Pleco.Api
     HealthJSON,
     Health (..),
     Subscription (..),
-    JobsetEventApi(..),
+    JobsetEventApi (..),
     JobsetEvent (..),
     EventType (..),
     Project (..),

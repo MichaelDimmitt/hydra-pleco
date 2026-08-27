@@ -80,4 +80,3 @@ postWebhook event = webhookClient // webhook /: event
 
 webhookClient :: JobsetEventApi (AsClientT ClientM)
 webhookClient = genericClient
-

@@ -1,5 +1,5 @@
 module Hydra.Pleco.Api.Event
-  ( JobsetEventApi(..),
+  ( JobsetEventApi (..),
     JobsetEvent (..),
     EventType (..),
     Project (..),
@@ -19,7 +19,7 @@ import Data.OpenApi (ToSchema)
 import Data.OpenApi qualified as OpenApi
 import Optics ((.~), (?~))
 import Relude.Extra (safeToEnum)
-import Servant.API ((:-), JSON, ReqBody, (:>), Post)
+import Servant.API (JSON, Post, ReqBody, (:-), (:>))
 
 newtype JobsetEventApi mode = JobsetEventApi
   { webhook :: mode :- ReqBody '[JSON] JobsetEvent :> Post '[JSON] ()
