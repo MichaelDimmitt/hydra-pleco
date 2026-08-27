@@ -7,6 +7,9 @@ module Hydra.Pleco.Client
     plecoClient,
     getHealth,
 
+    -- * Echo server
+    runEchoServer,
+
     -- * Re-exports
     Manager,
     newManager,
@@ -16,6 +19,7 @@ module Hydra.Pleco.Client
   ) where
 
 import Hydra.Pleco.Api (Health, HydraApi (..))
+import Hydra.Pleco.Client.EchoServer (runEchoServer)
 
 import Network.HTTP.Client (Manager, defaultManagerSettings, newManager)
 import Servant.Client (AsClientT, BaseUrl, ClientEnv, ClientError, ClientM, (//))

@@ -38,11 +38,13 @@ common common-options
     -Wpartial-fields
 
   default-extensions:
+    DataKinds
     DeriveAnyClass
     DerivingStrategies
     LambdaCase
     OverloadedStrings
     RecordWildCards
+    TypeOperators
 
   default-language: GHC2021
 
@@ -51,14 +53,20 @@ library
   hs-source-dirs: src
   exposed-modules:
     Hydra.Pleco.Client
+    Hydra.Pleco.Client.EchoServer
 
   build-depends:
+    aeson-pretty,
     http-client,
     hydra-pleco-api,
+    katip,
     optparse-applicative,
     servant,
     servant-client,
     servant-client-core,
+    servant-server,
+    wai,
+    warp,
 
 executable pleco
   import: common-options
@@ -67,6 +75,7 @@ executable pleco
   build-depends:
     hydra-pleco-cli,
     optparse-applicative,
+    warp,
 
   ghc-options:
     -threaded
