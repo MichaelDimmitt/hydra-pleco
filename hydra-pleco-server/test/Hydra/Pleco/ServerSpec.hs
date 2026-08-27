@@ -7,6 +7,6 @@ import Test.Hspec
 spec :: Spec
 spec = describe "runPlecoServerT" $
   it "runs an action in the reader environment" $ do
-    env <- mkPlecoServerEnv
+    env <- mkPlecoServerEnv []
     ns <- runPlecoServerT env (asks pseLogNamespace)
     pseLogNamespace env `shouldBe` ns

@@ -86,6 +86,7 @@ executable hydra-pleco
   build-depends:
     hydra-pleco-api,
     hydra-pleco-server,
+    optparse-applicative,
     warp,
 
   ghc-options:

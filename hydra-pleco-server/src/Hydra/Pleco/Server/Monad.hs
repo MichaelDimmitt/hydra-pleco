@@ -67,8 +67,8 @@ instance (MonadIO io) => KatipContext (PlecoServerT io) where
 runPlecoServerT :: PlecoServerEnv -> PlecoServerT m a -> m a
 runPlecoServerT env = usingReaderT env . unPlecoServerT
 
-mkPlecoServerEnv :: IO PlecoServerEnv
-mkPlecoServerEnv = do
+mkPlecoServerEnv :: [Subscription] -> IO PlecoServerEnv
+mkPlecoServerEnv initialSubs = do
   logEnv <- Katip.initLogEnv "hydra-pleco" "production"
   scribe <-
     Katip.mkHandleScribeWithFormatter
@@ -78,7 +78,7 @@ mkPlecoServerEnv = do
       (Katip.permitItem Katip.InfoS)
       Katip.V2
   logEnv' <- Katip.registerScribe "stderr" scribe Katip.defaultScribeSettings logEnv
-  subs <- newTVarIO []
+  subs <- newTVarIO initialSubs
   pool <- newConnectionPool
   manager' <- newManager defaultManagerSettings
 
