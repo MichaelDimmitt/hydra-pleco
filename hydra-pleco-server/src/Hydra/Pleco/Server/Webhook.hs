@@ -3,14 +3,13 @@ module Hydra.Pleco.Server.Webhook
     webhooksSubscribeHandler,
     webhooksListHandler,
     watchHydraEvents,
-    toHydraNotification,
     fromHydraNotification,
   ) where
 
 import Hydra.Pleco.Api
-import Hydra.Pleco.Server.DB (HydraNotification, hydraNotifyChannels, newConnection, parseHydraNotification, releaseConnection)
+import Hydra.Pleco.Server.DB (HydraNotification, hydraNotifyChannels, newConnection, parseHydraNotification, releaseConnection, runSession)
 import Hydra.Pleco.Server.Monad (PlecoServerEnv (..), PlecoServerT)
-import Hydra.Pleco.Server.Webhook.DB (fromHydraNotification, toHydraNotification)
+import Hydra.Pleco.Server.Webhook.DB (fromHydraNotification)
 
 import Hasql.Notifications (listen, toPgIdentifier, waitForNotifications)
 import Katip qualified
@@ -18,7 +17,7 @@ import Servant (Handler, HasServer (..), NamedRoutes)
 import Servant.Client (AsClientT, ClientError, ClientM, (//), (/:))
 import Servant.Client qualified as Servant
 import Servant.Client.Generic (genericClient)
-import UnliftIO (MonadUnliftIO (..), bracket, modifyTVar)
+import UnliftIO (MonadUnliftIO (..), bracket, catch, modifyTVar)
 
 webhooksHandler :: ServerT (NamedRoutes WebhooksApi) (PlecoServerT Handler)
 webhooksHandler =
@@ -48,17 +47,20 @@ watchHydraEvents = do
         let notification = parseHydraNotification (decodeUtf8 chan) (decodeUtf8 payload)
         case notification of
           Left err -> Katip.logFM Katip.ErrorS $ Katip.ls err
-          Right parsed -> handleNotification parsed
+          Right parsed -> do
+            handleNotification parsed `catch` \(err :: SomeException) ->
+              Katip.logFM Katip.ErrorS $ Katip.showLS err
 
 handleNotification :: HydraNotification -> PlecoServerT IO ()
 handleNotification notification = do
   Katip.logFM Katip.InfoS $
     "Received Hydra event: " <> show notification
 
-  PlecoServerEnv {pseSubscriptions} <- ask
+  PlecoServerEnv {pseDbPool, pseSubscriptions} <- ask
   subs <- readTVarIO pseSubscriptions
 
-  let event = fromHydraNotification notification
+  event <- liftIO $ runSession pseDbPool (fromHydraNotification notification)
+
   forM_ subs $ \sub -> do
     res <- sendWebhook event sub
     case res of

@@ -1,26 +1,35 @@
 module Hydra.Pleco.Server.Webhook.DB
-  ( toHydraNotification,
-    fromHydraNotification,
+  ( fromHydraNotification,
   ) where
 
-import Hydra.Pleco.Api
-import Hydra.Pleco.Server.DB (HydraNotification (..))
+import Hasql.Session (Session, statement)
+import Hydra.Pleco.Api hiding (Jobset)
+import Hydra.Pleco.Api qualified as Api
+import Hydra.Pleco.Server.DB (HydraNotification (..), JobsetId, jobsetById)
+import Hydra.Pleco.Server.DB.Hydra (Jobset (..))
 
--- TODO[sgillespie]: Implement me
-toHydraNotification :: JobsetEvent -> HydraNotification
-toHydraNotification JobsetEvent {..} = undefined
+fromHydraNotification :: HydraNotification -> Session JobsetEvent
+fromHydraNotification notification = do
+  let jobsetId = hydraNotificationJobsetId notification
+      eventType = hydraNotificationToEventType notification
+  jobset <- statement () (jobsetById jobsetId)
 
--- TODO[sgillespie]: Implement me
-fromHydraNotification :: HydraNotification -> JobsetEvent
-fromHydraNotification event =
-  let eventTy =
-        case event of
-          HydraEvalAdded _ _ -> EvalAdded
-          HydraEvalStarted _ -> EvalStarted
-          HydraEvalCached _ _ -> EvalCached
-          HydraEvalFailed _ -> EvalFailed
-  in  JobsetEvent
-        { jeEventType = eventTy,
-          jeProject = Project "",
-          jeJobset = Jobset ""
-        }
+  pure $
+    JobsetEvent
+      { jeEventType = eventType,
+        jeProject = Api.Project (jsProject jobset),
+        jeJobset = Api.Jobset (jsName jobset)
+      }
+
+-- TODO[sgillespie]: Move me to "Mapping" layer?
+hydraNotificationJobsetId :: HydraNotification -> JobsetId
+hydraNotificationJobsetId (HydraEvalAdded jobset _) = jobset
+hydraNotificationJobsetId (HydraEvalStarted jobset) = jobset
+hydraNotificationJobsetId (HydraEvalCached jobset _) = jobset
+hydraNotificationJobsetId (HydraEvalFailed jobset) = jobset
+
+hydraNotificationToEventType :: HydraNotification -> EventType
+hydraNotificationToEventType (HydraEvalAdded _ _) = EvalAdded
+hydraNotificationToEventType (HydraEvalStarted _) = EvalStarted
+hydraNotificationToEventType (HydraEvalCached _ _) = EvalCached
+hydraNotificationToEventType (HydraEvalFailed _) = EvalFailed
