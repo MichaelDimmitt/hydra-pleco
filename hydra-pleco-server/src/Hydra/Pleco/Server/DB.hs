@@ -10,6 +10,7 @@ module Hydra.Pleco.Server.DB
   ) where
 
 import Hydra.Pleco.Server.DB.Hydra as Hydra
+import Hydra.Pleco.Server.Error (PlecoServerError(..))
 
 import Hasql.Connection (Connection)
 import Hasql.Connection qualified as Connection
@@ -19,7 +20,6 @@ import Hasql.Pool (Pool)
 import Hasql.Pool qualified as Pool
 import Hasql.Pool.Config qualified as Pool
 import Hasql.Session (Session, statement)
-import System.IO.Error (userError)
 import UnliftIO.Exception (throwIO)
 
 newConnectionPool :: (MonadIO io) => io Pool
@@ -54,7 +54,7 @@ newConnection :: (MonadIO io) => io Connection
 newConnection = do
   res <- liftIO $ Connection.acquire [connectionString]
   either
-    (throwIO . userError . maybe "Could not acquire DB connection" decodeUtf8)
+    (throwIO . ServerDbConnectionError)
     pure
     res
 

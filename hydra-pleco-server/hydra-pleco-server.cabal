@@ -59,6 +59,7 @@ library
     Hydra.Pleco.Server
     Hydra.Pleco.Server.DB
     Hydra.Pleco.Server.DB.Hydra
+    Hydra.Pleco.Server.Error
     Hydra.Pleco.Server.Monad
     Hydra.Pleco.Server.Webhook
     Hydra.Pleco.Server.Webhook.DB

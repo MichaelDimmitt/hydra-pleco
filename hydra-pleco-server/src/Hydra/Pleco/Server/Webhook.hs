@@ -8,16 +8,19 @@ module Hydra.Pleco.Server.Webhook
 
 import Hydra.Pleco.Api
 import Hydra.Pleco.Server.DB (HydraNotification, hydraNotifyChannels, newConnection, parseHydraNotification, releaseConnection, runSession)
+import Hydra.Pleco.Server.Error (PlecoServerError (..))
 import Hydra.Pleco.Server.Monad (PlecoServerEnv (..), PlecoServerT)
 import Hydra.Pleco.Server.Webhook.DB (fromHydraNotification)
 
 import Hasql.Notifications (listen, toPgIdentifier, waitForNotifications)
 import Katip qualified
 import Servant (Handler, HasServer (..), NamedRoutes)
-import Servant.Client (AsClientT, ClientError, ClientM, (//), (/:))
+import Servant.Client (AsClientT, ClientM, (//), (/:))
 import Servant.Client qualified as Servant
 import Servant.Client.Generic (genericClient)
-import UnliftIO (MonadUnliftIO (..), bracket, catch, modifyTVar)
+import Servant.Server (ServerError)
+import UnliftIO (MonadUnliftIO (..), bracket, catches, modifyTVar, throwIO)
+import UnliftIO.Exception qualified as Exception
 
 webhooksHandler :: ServerT (NamedRoutes WebhooksApi) (PlecoServerT Handler)
 webhooksHandler =
@@ -46,10 +49,15 @@ watchHydraEvents = do
       flip waitForNotifications conn $ \chan payload -> run $ do
         let notification = parseHydraNotification (decodeUtf8 chan) (decodeUtf8 payload)
         case notification of
-          Left err -> Katip.logFM Katip.ErrorS $ Katip.ls err
+          Left err -> Katip.logFM Katip.ErrorS $ Katip.showLS err
           Right parsed -> do
-            handleNotification parsed `catch` \(err :: SomeException) ->
-              Katip.logFM Katip.ErrorS $ Katip.showLS err
+            catches
+              (handleNotification parsed)
+              [ Exception.Handler $ \(err :: ServerError) ->
+                  Katip.logFM Katip.WarningS $ "Received invalid response: " <> Katip.showLS err,
+                Exception.Handler $ \(err :: SomeException) ->
+                  Katip.logFM Katip.ErrorS $ Katip.showLS err
+              ]
 
 handleNotification :: HydraNotification -> PlecoServerT IO ()
 handleNotification notification = do
@@ -62,20 +70,20 @@ handleNotification notification = do
   event <- liftIO $ runSession pseDbPool (fromHydraNotification notification)
 
   forM_ subs $ \sub -> do
-    res <- sendWebhook event sub
-    case res of
-      Left err ->
-        Katip.logFM Katip.WarningS $ "Received invalid response: " <> Katip.showLS err
-      Right () ->
-        Katip.logFM Katip.InfoS $ "Successfully sent webhook to " <> Katip.showLS sub
+    sendWebhook event sub
+    Katip.logFM Katip.InfoS $ "Successfully sent webhook to " <> Katip.showLS sub
 
-sendWebhook :: JobsetEvent -> Subscription -> PlecoServerT IO (Either ClientError ())
+sendWebhook :: JobsetEvent -> Subscription -> PlecoServerT IO ()
 sendWebhook reqPayload (Subscription url) = do
   manager' <- asks pseClientManager
-  liftIO . runExceptT $ do
-    baseUrl <- Servant.parseBaseUrl (toString url)
-    let env' = Servant.mkClientEnv manager' baseUrl
-    ExceptT $ Servant.runClientM (postWebhook reqPayload) env'
+  baseUrl <- Servant.parseBaseUrl (toString url)
+  let env' = Servant.mkClientEnv manager' baseUrl
+  res <- liftIO $ Servant.runClientM (postWebhook reqPayload) env'
+
+  either
+    (throwIO . ServerClientError)
+    pure
+    res
 
 postWebhook :: JobsetEvent -> ClientM ()
 postWebhook event = webhookClient // webhook /: event

@@ -11,6 +11,7 @@ module Hydra.Pleco.Server.DB.Hydra
   ) where
 
 import Hasql.Statement (Statement)
+import Hydra.Pleco.Server.Error (PlecoServerError (..))
 import Rel8
   ( Column,
     DBEq,
@@ -145,7 +146,7 @@ hydraNotifyChannels =
     "eval_failed"
   ]
 
-parseHydraNotification :: Text -> Text -> Either Text HydraNotification
+parseHydraNotification :: Text -> Text -> Either PlecoServerError HydraNotification
 parseHydraNotification channel payload =
   case (channel, payload') of
     ("eval_added", [_, jobsetId, evalId]) ->
@@ -156,9 +157,11 @@ parseHydraNotification channel payload =
       HydraEvalCached <$> readEither' jobsetId <*> readEither' evalId
     ("eval_failed", [_, jobsetId]) ->
       HydraEvalFailed <$> readEither' jobsetId
-    _ -> Left $ "Cannot parse event '" <> channel <> "' with payload: " <> payload
+    _ ->
+      Left . ServerParsingError $
+        "Cannot parse event '" <> channel <> "' with payload: " <> payload
   where
-    readEither' :: (Read a, ToString s) => s -> Either Text a
-    readEither' = readEither . toString
+    readEither' :: (Read a, ToString s) => s -> Either PlecoServerError a
+    readEither' = first ServerParsingError . readEither . toString
 
     payload' = words payload
