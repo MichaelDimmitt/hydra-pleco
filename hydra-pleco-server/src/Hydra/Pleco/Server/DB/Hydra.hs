@@ -10,6 +10,7 @@ module Hydra.Pleco.Server.DB.Hydra
     parseHydraNotification,
   ) where
 
+import Hasql.Statement (Statement)
 import Rel8
   ( Column,
     DBEq,
@@ -21,7 +22,6 @@ import Rel8
     (==.),
   )
 import Rel8 qualified
-import Hasql.Statement (Statement)
 
 data Project f = Project
   { prjName :: Column f Text,
@@ -130,8 +130,8 @@ newtype JobsetEvalId = JobsetEvalId {unJobsetEvalId :: Int}
   deriving newtype (Read)
 
 jobsetById :: JobsetId -> Statement () (Jobset Result)
-jobsetById jobsetId = 
-  Rel8.run1 $ 
+jobsetById jobsetId =
+  Rel8.run1 $
     Rel8.select $ do
       jobsets <- Rel8.each jobsetSchema
       Rel8.where_ $ jsId jobsets ==. Rel8.lit jobsetId
