@@ -19,9 +19,9 @@
   }: let
     inherit (pkgs.stdenv.hostPlatform) isx86_64 isLinux;
 
-    crossPlatforms = p:
-      lib.optionals isx86_64 [p.mingwW64]
-      ++ lib.optionals (isx86_64 && isLinux) [p.musl64];
+    # TODO[sgillespie]: Windows cross is not possible, because postgresql doesn't build.
+    # Revisit pqi-native once rel8 upgrades to hasql >= 2.0.0.2
+    crossPlatforms = p: lib.optionals (isx86_64 && isLinux) [p.musl64];
 
     cabalProject = pkgs.haskell-nix.cabalProject' {
       src = ./..;

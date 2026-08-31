@@ -28,8 +28,7 @@ cli *args:
 dist *args:
     nix build \
       {{ args }} \
-      ".#x86_64-linux-static-dist" \
-      ".#x86_64-windows-dist"
+      ".#x86_64-linux-static-dist"
 
 ## Checks
 

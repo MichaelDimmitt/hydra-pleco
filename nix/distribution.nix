@@ -38,33 +38,9 @@
         dist_file=${name}.tar.gz
         tar -cvzf $out/$dist_file .
       '';
-
-    mkDistWin64 = let
-      inherit (project.exes.hydra-pleco.identifier) version;
-      project = haskellProject.projectCross.mingwW64;
-      name = "hydra-pleco-${version}-x86_64-windows";
-      env = {
-        nativeBuildInputs = [pkgs.zip];
-      };
-    in
-      pkgs.runCommand
-      "hydra-pleco-win64"
-      env
-      ''
-        mkdir -p $out
-
-        # Copy exes to intermediate dir
-        ${cpExesCmd project}
-
-        # Package distribution
-        cd release
-        dist_file=${name}.zip
-        find . -type f | xargs zip $out/$dist_file
-      '';
   in {
     packages = lib.optionalAttrs (system == "x86_64-linux") {
       x86_64-linux-static-dist = mkDistMusl;
-      x86_64-windows-dist = mkDistWin64;
     };
   };
 }
