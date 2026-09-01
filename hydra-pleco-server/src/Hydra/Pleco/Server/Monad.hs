@@ -84,7 +84,7 @@ mkPlecoServerEnv initialSubs = do
 
   pure
     PlecoServerEnv
-      { pseLogNamespace = "default",
+      { pseLogNamespace = mempty,
         pseLogCtx = mempty,
         pseLogEnv = logEnv',
         pseSubscriptions = subs,

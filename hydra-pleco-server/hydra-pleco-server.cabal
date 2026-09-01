@@ -66,11 +66,14 @@ library
 
   build-depends:
     aeson,
+    clock,
     hasql,
     hasql-notifications,
     hasql-pool,
     http-client,
+    http-types,
     katip,
+    katip-wai,
     rel8,
     servant,
     servant-client,
@@ -78,6 +81,7 @@ library
     servant-server,
     servant-swagger-ui,
     text,
+    uuid,
     warp,
 
 executable hydra-pleco

@@ -10,7 +10,7 @@ module Hydra.Pleco.Server.DB
   ) where
 
 import Hydra.Pleco.Server.DB.Hydra as Hydra
-import Hydra.Pleco.Server.Error (PlecoServerError(..))
+import Hydra.Pleco.Server.Error (PlecoServerError (..))
 
 import Hasql.Connection (Connection)
 import Hasql.Connection qualified as Connection

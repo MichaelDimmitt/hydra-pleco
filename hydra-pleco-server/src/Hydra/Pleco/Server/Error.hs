@@ -1,6 +1,7 @@
 module Hydra.Pleco.Server.Error
   ( PlecoServerError (..),
   ) where
+
 import Hasql.Connection (ConnectionError)
 import Servant.Client (ClientError)
 
