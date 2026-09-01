@@ -13,22 +13,34 @@ spec = do
     it "round-trips through Aeson" $
       hedgehog $ do
         health <- forAll Gen.health
-        tripping health Aeson.encode Aeson.decode
+        tripping health Aeson.encode Aeson.eitherDecode
 
   describe "Subscription" $
     it "round-trips through Aeson" $
       hedgehog $ do
         sub <- forAll Gen.subscription
-        tripping sub Aeson.encode Aeson.decode
+        tripping sub Aeson.encode Aeson.eitherDecode
 
   describe "JobsetEvent" $
     it "round-trips through Aeson" $
       hedgehog $ do
         ev <- forAll Gen.jobsetEvent
-        tripping ev Aeson.encode Aeson.decode
+        tripping ev Aeson.encode Aeson.eitherDecode
 
   describe "EventType" $
     it "round-trips through Aeson" $
       hedgehog $ do
         ty <- forAll Gen.eventType
-        tripping ty Aeson.encode Aeson.decode
+        tripping ty Aeson.encode Aeson.eitherDecode
+
+  describe "Project" $
+    it "round-trips through Aeson" $
+      hedgehog $ do
+        prj <- forAll Gen.project
+        tripping prj Aeson.encode Aeson.eitherDecode
+
+  describe "ProjectId" $
+    it "round-trips through Aeson" $
+      hedgehog $ do
+        id' <- forAll Gen.projectId
+        tripping id' Aeson.encode Aeson.eitherDecode

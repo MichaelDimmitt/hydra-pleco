@@ -8,7 +8,9 @@ module Hydra.Pleco.Api
     JobsetEventApi (..),
     JobsetEvent (..),
     EventType (..),
+    ProjectsApi (..),
     Project (..),
+    ProjectId (..),
     Jobset (..),
     hydraApi,
     hydraOpenApi,
@@ -20,8 +22,11 @@ import Hydra.Pleco.Api.Event
     Jobset (..),
     JobsetEvent (..),
     JobsetEventApi (..),
-    Project (..),
     jobsetEventApi,
+  )
+import Hydra.Pleco.Api.Project
+  ( Project (..),
+    ProjectId (..),
   )
 
 import Data.Aeson
@@ -54,13 +59,20 @@ import Servant.Swagger.UI (SwaggerSchemaUI)
 -- | Documented API routes. OpenApi spec is generated from this.
 data HydraApi mode = HydraApi
   { health :: mode :- "health" :> Get '[HealthJSON] Health,
-    webhooks :: mode :- "webhooks" :> NamedRoutes WebhooksApi
+    webhooks :: mode :- "webhooks" :> NamedRoutes WebhooksApi,
+    projects :: mode :- "projects" :> NamedRoutes ProjectsApi
   }
   deriving stock (Generic)
 
 data WebhooksApi mode = WebhooksApi
   { subscribe :: mode :- ReqBody '[JSON] Subscription :> PostCreated '[JSON] Subscription,
     list :: mode :- Get '[JSON] [Subscription]
+  }
+  deriving stock (Generic)
+
+data ProjectsApi mode = ProjectsApi
+  { listProjects :: mode :- Get '[JSON] [Project],
+    getProject :: mode :- Capture "project-id" ProjectId :> Get '[JSON] Project
   }
   deriving stock (Generic)
 

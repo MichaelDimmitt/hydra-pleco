@@ -2,10 +2,11 @@ module Hydra.Pleco.Api.Event
   ( JobsetEventApi (..),
     JobsetEvent (..),
     EventType (..),
-    Project (..),
     Jobset (..),
     jobsetEventApi,
   ) where
+
+import Hydra.Pleco.Api.Project (ProjectId(..))
 
 import Data.Aeson
   ( FromJSON,
@@ -31,7 +32,7 @@ jobsetEventApi = Proxy
 
 data JobsetEvent = JobsetEvent
   { jeEventType :: EventType,
-    jeProject :: Project,
+    jeProject :: ProjectId,
     jeJobset :: Jobset
   }
   deriving stock (Eq, Show, Generic)
@@ -126,11 +127,6 @@ instance FromJSON EventType where
     "build_finished" -> pure BuildFinished
     "cached_build_finished" -> pure CachedBuildFinished
     e -> fail (toString e)
-
-newtype Project = Project {unProject :: Text}
-  deriving stock (Eq, Generic, Ord, Show)
-  deriving anyclass (ToSchema)
-  deriving newtype (ToJSON, FromJSON)
 
 newtype Jobset = Jobset {unJobset :: Text}
   deriving stock (Eq, Generic, Ord, Show)

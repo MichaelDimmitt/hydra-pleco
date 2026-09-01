@@ -17,7 +17,7 @@ fromHydraNotification notification = do
   pure $
     JobsetEvent
       { jeEventType = eventType,
-        jeProject = Api.Project (jsProject jobset),
+        jeProject = Api.ProjectId (jsProject jobset),
         jeJobset = Api.Jobset (jsName jobset)
       }
 

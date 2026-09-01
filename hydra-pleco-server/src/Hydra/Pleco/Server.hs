@@ -11,6 +11,7 @@ import Hydra.Pleco.Api qualified as Api
 import Hydra.Pleco.Server.DB (releaseConnectionPool, testConnection)
 import Hydra.Pleco.Server.Monad
 import Hydra.Pleco.Server.Webhook (watchHydraEvents, webhooksHandler)
+import Hydra.Pleco.Server.Projects (projectsHandler)
 
 import Data.Aeson ((.=))
 import Data.Aeson qualified as Aeson
@@ -124,7 +125,8 @@ apiServer :: ServerT (NamedRoutes HydraApi) (PlecoServerT Handler)
 apiServer =
   HydraApi
     { health = healthHandler,
-      webhooks = webhooksHandler
+      webhooks = webhooksHandler,
+      projects = projectsHandler
     }
 
 healthHandler :: PlecoServerT Handler Health
