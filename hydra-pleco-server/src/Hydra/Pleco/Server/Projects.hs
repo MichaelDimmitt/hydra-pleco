@@ -3,9 +3,10 @@ module Hydra.Pleco.Server.Projects
   ) where
 
 import Hydra.Pleco.Api (Project (..), ProjectId (..), ProjectsApi (..))
-import Hydra.Pleco.Server.Monad (PlecoServerT)
+import Hydra.Pleco.Server.Monad (PlecoServerEnv (..), PlecoServerT)
+import Hydra.Pleco.Server.Projects.DB (fromProject)
 
-import Data.List qualified as List
+import Hydra.Pleco.Server.DB (eachProject, projectByName, runSession, statement)
 import Servant (Handler, HasServer (..), NamedRoutes)
 
 projectsHandler :: ServerT (NamedRoutes ProjectsApi) (PlecoServerT Handler)
@@ -15,23 +16,16 @@ projectsHandler =
       getProject = getProjectHandler
     }
 
--- TODO[sgillespie]: Implement me
 listProjectsHandler :: PlecoServerT Handler [Project]
-listProjectsHandler = List.singleton <$> getProjectHandler (ProjectId "demo-project")
+listProjectsHandler = do
+  pool <- asks pseDbPool
 
--- TODO[sgillespie]: Implement me
+  dbProjects <- runSession pool $ statement () eachProject
+  pure $ map fromProject dbProjects
+
 getProjectHandler :: ProjectId -> PlecoServerT Handler Project
-getProjectHandler _ =
-  pure
-    Project
-      { prjId = ProjectId "demo-project",
-        prjEnabled = True,
-        prjVisible = True,
-        prjDisplayName = "Demo Project",
-        prjDescription = Nothing,
-        prjHomepage = Nothing,
-        prjOwner = "demo-owner",
-        prjEnableDynRunCmd = False,
-        prjDeclSpecFile = Nothing,
-        prjDeclInputType = Nothing
-      }
+getProjectHandler (ProjectId project) = do
+  pool <- asks pseDbPool
+
+  dbProject <- runSession pool $ statement () (projectByName project)
+  pure $ fromProject dbProject

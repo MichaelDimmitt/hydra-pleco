@@ -5,6 +5,8 @@ module Hydra.Pleco.Server.DB.Hydra
     HydraNotification (..),
     projectSchema,
     jobsetSchema,
+    eachProject,
+    projectByName,
     jobsetById,
     hydraNotifyChannels,
     parseHydraNotification,
@@ -27,13 +29,13 @@ import Rel8 qualified
 data Project f = Project
   { prjName :: Column f Text,
     prjDisplayName :: Column f Text,
-    prjDescription :: Column f Text,
+    prjDescription :: Column f (Maybe Text),
     prjEnabled :: Column f Bool,
     prjHidden :: Column f Bool,
     prjOwner :: Column f Text,
-    prjHomepage :: Column f Text,
-    prjDeclFile :: Column f Text,
-    prjDeclType :: Column f Text,
+    prjHomepage :: Column f (Maybe Text),
+    prjDeclFile :: Column f (Maybe Text),
+    prjDeclType :: Column f (Maybe Text),
     prjEnableDynCmd :: Column f Bool
   }
   deriving stock (Generic)
@@ -129,6 +131,18 @@ newtype JobsetId = JobsetId {unJobsetId :: Int64}
 newtype JobsetEvalId = JobsetEvalId {unJobsetEvalId :: Int}
   deriving stock (Eq, Show)
   deriving newtype (Read)
+
+eachProject :: Statement () [Project Result]
+eachProject = Rel8.run $ Rel8.select (Rel8.each projectSchema)
+
+projectByName :: Text -> Statement () (Project Result)
+projectByName name = 
+  Rel8.run1 $
+    Rel8.select $ do
+      projects <- Rel8.each projectSchema
+      Rel8.where_ $ prjName projects ==. Rel8.lit name
+      pure projects
+
 
 jobsetById :: JobsetId -> Statement () (Jobset Result)
 jobsetById jobsetId =
