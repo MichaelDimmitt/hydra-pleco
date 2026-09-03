@@ -56,6 +56,7 @@ library
     Hydra.Pleco.Client.EchoServer
 
   build-depends:
+    aeson,
     aeson-pretty,
     http-client,
     hydra-pleco-api,

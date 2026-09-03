@@ -1,28 +1,48 @@
 module Hydra.Pleco.Client
-  ( PlecoClient (..),
+  ( -- * The Pleco API client monad
+    PlecoClient (..),
     PlecoClientEnv (..),
-    hoistClientM,
-    runPlecoClient,
+    PlecoClientError (..),
     mkPlecoClientEnv,
+    runPlecoClient,
     plecoClient,
-    getHealth,
 
-    -- * Echo server
+    -- * Querying the Pleco API
+    getHealth,
+    getProject,
+    listProjects,
+
+    -- * Running the reference webhook server
     runEchoServer,
 
+    -- * Pleco API interface types
+    Api.HealthJSON,
+    Api.Health (..),
+    Api.Subscription (..),
+    Api.JobsetEvent (..),
+    Api.EventType (..),
+    Api.Project (..),
+    Api.ProjectId (..),
+    Api.Jobset (..),
+
     -- * Re-exports
-    Manager,
-    newManager,
-    defaultManagerSettings,
     BaseUrl (..),
     Servant.Scheme (..),
+    parseBaseUrl,
+    FromJSON,
+    ToJSON,
+    Aeson.encodePretty,
   ) where
 
-import Hydra.Pleco.Api (Health, HydraApi (..))
+import Hydra.Pleco.Api (Health, HydraApi, Project, ProjectId)
+import Hydra.Pleco.Api qualified as Api
 import Hydra.Pleco.Client.EchoServer (runEchoServer)
 
-import Network.HTTP.Client (Manager, defaultManagerSettings, newManager)
-import Servant.Client (AsClientT, BaseUrl, ClientEnv, ClientError, ClientM, (//))
+import Control.Exception (throwIO)
+import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson.Encode.Pretty qualified as Aeson
+import Network.HTTP.Client (defaultManagerSettings, newManager)
+import Servant.Client (AsClientT, BaseUrl, ClientEnv, ClientError, ClientM, parseBaseUrl, (//))
 import Servant.Client qualified as Servant
 import Servant.Client.Generic (genericClientHoist)
 
@@ -40,21 +60,31 @@ newtype PlecoClientEnv = PlecoClientEnv
   { pceClientEnv :: ClientEnv
   }
 
-hoistClientM :: ClientM a -> PlecoClient a
-hoistClientM = PlecoClient . lift
+newtype PlecoClientError = PlecoClientError ClientError
+  deriving stock (Eq, Show)
+  deriving newtype (Exception)
 
-runPlecoClient :: PlecoClientEnv -> PlecoClient a -> IO (Either ClientError a)
-runPlecoClient env@PlecoClientEnv {..} action =
-  Servant.runClientM (runReaderT (unPlecoClient action) env) pceClientEnv
+mkPlecoClientEnv :: BaseUrl -> IO PlecoClientEnv
+mkPlecoClientEnv url = do
+  manager <- newManager defaultManagerSettings
+  pure $ PlecoClientEnv (Servant.mkClientEnv manager url)
 
-mkPlecoClientEnv :: Manager -> BaseUrl -> PlecoClientEnv
-mkPlecoClientEnv manager url =
-  PlecoClientEnv
-    { pceClientEnv = Servant.mkClientEnv manager url
-    }
+runPlecoClient :: PlecoClientEnv -> PlecoClient a -> IO a
+runPlecoClient env@PlecoClientEnv {..} action = do
+  res <- Servant.runClientM (runReaderT (unPlecoClient action) env) pceClientEnv
+  either throwIO pure res
 
 plecoClient :: HydraApi (AsClientT PlecoClient)
 plecoClient = genericClientHoist hoistClientM
 
+hoistClientM :: ClientM a -> PlecoClient a
+hoistClientM = PlecoClient . lift
+
 getHealth :: PlecoClient Health
-getHealth = plecoClient // health
+getHealth = plecoClient // Api.health
+
+listProjects :: PlecoClient [Project]
+listProjects = plecoClient // Api.projects // Api.listProjects
+
+getProject :: ProjectId -> PlecoClient Project
+getProject = plecoClient // Api.projects // Api.getProject
