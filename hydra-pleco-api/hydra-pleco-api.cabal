@@ -70,6 +70,7 @@ library
 library testlib
   import: common-options
   hs-source-dirs: testlib
+  visibility: public
   exposed-modules:
     Hydra.Pleco.Api.Gen
 

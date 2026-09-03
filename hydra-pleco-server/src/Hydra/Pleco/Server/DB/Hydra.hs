@@ -38,10 +38,10 @@ data Project f = Project
     prjDeclType :: Column f (Maybe Text),
     prjEnableDynCmd :: Column f Bool
   }
-  deriving stock (Generic)
   deriving anyclass (Rel8able)
 
 deriving stock instance (f ~ Result) => Show (Project f)
+deriving stock instance (f ~ Result) => Eq (Project f)
 
 data Jobset f = Jobset
   { jsName :: Column f Text,
