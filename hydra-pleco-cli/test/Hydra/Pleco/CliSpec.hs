@@ -10,8 +10,6 @@ spec = do
   describe "mkPlecoClientEnv" $ do
     it "sets expected BaseUrl" $ do
       let baseUrl' = BaseUrl Http "localhost" 8081 ""
-      manager' <- newManager defaultManagerSettings
-
-      let env = mkPlecoClientEnv manager' baseUrl'
+      env <- mkPlecoClientEnv baseUrl'
 
       baseUrl (pceClientEnv env) `shouldBe` baseUrl'
