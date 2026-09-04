@@ -137,13 +137,12 @@ eachProject :: Statement () [Project Result]
 eachProject = Rel8.run $ Rel8.select (Rel8.each projectSchema)
 
 projectByName :: Text -> Statement () (Project Result)
-projectByName name = 
+projectByName name =
   Rel8.run1 $
     Rel8.select $ do
       projects <- Rel8.each projectSchema
       Rel8.where_ $ prjName projects ==. Rel8.lit name
       pure projects
-
 
 jobsetById :: JobsetId -> Statement () (Jobset Result)
 jobsetById jobsetId =

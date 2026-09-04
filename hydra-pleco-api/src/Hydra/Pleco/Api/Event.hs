@@ -6,7 +6,7 @@ module Hydra.Pleco.Api.Event
     jobsetEventApi,
   ) where
 
-import Hydra.Pleco.Api.Project (ProjectId(..))
+import Hydra.Pleco.Api.Project (ProjectId (..))
 
 import Data.Aeson
   ( FromJSON,

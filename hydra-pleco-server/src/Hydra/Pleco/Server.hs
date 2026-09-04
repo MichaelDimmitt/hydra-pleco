@@ -10,8 +10,8 @@ import Hydra.Pleco.Api (Health (..), HydraApi (..), HydraApp (..))
 import Hydra.Pleco.Api qualified as Api
 import Hydra.Pleco.Server.DB (releaseConnectionPool, testConnection)
 import Hydra.Pleco.Server.Monad
-import Hydra.Pleco.Server.Webhook (watchHydraEvents, webhooksHandler)
 import Hydra.Pleco.Server.Projects (projectsHandler)
+import Hydra.Pleco.Server.Webhook (watchHydraEvents, webhooksHandler)
 
 import Data.Aeson ((.=))
 import Data.Aeson qualified as Aeson
@@ -24,7 +24,7 @@ import Katip.Wai.Request qualified as Request
 import Network.HTTP.Types (Status (..))
 import Network.Wai.Handler.Warp (Port, Settings)
 import Network.Wai.Handler.Warp qualified as Warp
-import Servant (Application, HasServer (..), NamedRoutes, Handler)
+import Servant (Application, Handler, HasServer (..), NamedRoutes)
 import Servant.Server.Generic (genericServeT)
 import Servant.Swagger.UI (swaggerSchemaUIServerT)
 import System.Clock (TimeSpec, toNanoSecs)

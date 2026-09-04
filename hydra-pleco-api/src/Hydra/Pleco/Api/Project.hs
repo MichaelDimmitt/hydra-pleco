@@ -5,7 +5,7 @@ module Hydra.Pleco.Api.Project
 
 import Data.Aeson (FromJSON, KeyValue (..), ToJSON, (.:))
 import Data.Aeson qualified as Aeson
-import Data.OpenApi (ToSchema, ToParamSchema)
+import Data.OpenApi (ToParamSchema, ToSchema)
 import Servant.API (FromHttpApiData, ToHttpApiData)
 
 data Project = Project
@@ -71,14 +71,14 @@ instance FromJSON Project where
 
     pure
       Project
-      { prjId = name,
-        prjEnabled = enabled,
-        prjVisible = visible,
-        prjDisplayName = displayName,
-        prjDescription = description,
-        prjHomepage = homepage,
-        prjOwner = owner,
-        prjEnableDynRunCmd = enableDynRunCmd,
-        prjDeclSpecFile = declSpecFile,
-        prjDeclInputType = declInputType
-      }
+        { prjId = name,
+          prjEnabled = enabled,
+          prjVisible = visible,
+          prjDisplayName = displayName,
+          prjDescription = description,
+          prjHomepage = homepage,
+          prjOwner = owner,
+          prjEnableDynRunCmd = enableDynRunCmd,
+          prjDeclSpecFile = declSpecFile,
+          prjDeclInputType = declInputType
+        }

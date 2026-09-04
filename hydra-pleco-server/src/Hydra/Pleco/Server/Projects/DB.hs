@@ -1,6 +1,6 @@
 module Hydra.Pleco.Server.Projects.DB
   ( fromProject,
-    toProject
+    toProject,
   ) where
 
 import Hydra.Pleco.Api qualified as Api
