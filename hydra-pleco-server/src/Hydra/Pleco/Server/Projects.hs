@@ -3,6 +3,7 @@ module Hydra.Pleco.Server.Projects
   ) where
 
 import Hydra.Pleco.Api (Project (..), ProjectId (..), ProjectsApi (..))
+import Hydra.Pleco.Server.Jobsets (jobsetsHandler)
 import Hydra.Pleco.Server.Monad (PlecoServerEnv (..), PlecoServerT)
 import Hydra.Pleco.Server.Projects.DB (fromProject)
 
@@ -13,7 +14,8 @@ projectsHandler :: ServerT (NamedRoutes ProjectsApi) (PlecoServerT Handler)
 projectsHandler =
   ProjectsApi
     { listProjects = listProjectsHandler,
-      getProject = getProjectHandler
+      getProject = getProjectHandler,
+      jobsets = jobsetsHandler
     }
 
 listProjectsHandler :: PlecoServerT Handler [Project]

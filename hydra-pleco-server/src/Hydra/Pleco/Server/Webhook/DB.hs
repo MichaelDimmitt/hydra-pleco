@@ -3,7 +3,7 @@ module Hydra.Pleco.Server.Webhook.DB
   ) where
 
 import Hasql.Session (Session, statement)
-import Hydra.Pleco.Api hiding (Jobset)
+import Hydra.Pleco.Api (EventType (..), JobsetEvent (..))
 import Hydra.Pleco.Api qualified as Api
 import Hydra.Pleco.Server.DB (HydraNotification (..), JobsetId, jobsetById)
 import Hydra.Pleco.Server.DB.Hydra (Jobset (..))
@@ -18,7 +18,7 @@ fromHydraNotification notification = do
     JobsetEvent
       { jeEventType = eventType,
         jeProject = Api.ProjectId (jsProject jobset),
-        jeJobset = Api.Jobset (jsName jobset)
+        jeJobset = Api.JobsetName (jsName jobset)
       }
 
 -- TODO[sgillespie]: Move me to "Mapping" layer?

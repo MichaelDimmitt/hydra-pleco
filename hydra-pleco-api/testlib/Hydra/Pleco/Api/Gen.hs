@@ -2,9 +2,14 @@ module Hydra.Pleco.Api.Gen
   ( health,
     subscription,
     jobsetEvent,
-    projectId,
     eventType,
     project,
+    projectId,
+    jobset,
+    jobsetName,
+    jobsetId,
+    jobsetState,
+    jobsetType,
   ) where
 
 import Hydra.Pleco.Api
@@ -12,6 +17,10 @@ import Hydra.Pleco.Api
     Health (..),
     Jobset (..),
     JobsetEvent (..),
+    JobsetId (..),
+    JobsetName (..),
+    JobsetState (..),
+    JobsetType (..),
     Project (..),
     ProjectId (..),
     Subscription (..),
@@ -31,13 +40,13 @@ jobsetEvent :: Gen JobsetEvent
 jobsetEvent = do
   eventType' <- eventType
   project' <- projectId
-  jobset' <- jobset
+  jobsetName' <- jobsetName
 
   pure
     JobsetEvent
       { jeEventType = eventType',
         jeProject = project',
-        jeJobset = jobset'
+        jeJobset = jobsetName'
       }
 
 eventType :: Gen EventType
@@ -85,7 +94,63 @@ projectId :: Gen ProjectId
 projectId = ProjectId <$> genTitle
 
 jobset :: Gen Jobset
-jobset = Jobset <$> genTitle
+jobset = do
+  name' <- jobsetName
+  project' <- projectId
+  id' <- jobsetId
+  state' <- jobsetState
+  visible <- Gen.bool
+  jsType <- jobsetType
+  flake <- Gen.maybe genUrl
+  nixExprInput <- Gen.maybe genUrl
+  nixExprPath <- Gen.maybe genTitle
+  description <- Gen.maybe genTitle
+  checkInterval <- Gen.int (Range.linear 0 maxBound)
+  schedulingShares <- Gen.int (Range.linear 0 21)
+  enableDynRunCmd <- Gen.bool
+  enableEmail <- Gen.bool
+  emailOverride <- Gen.maybe genTitle
+  keepNumEvals <- Gen.int (Range.linear 0 50)
+  lastCheckedTime <- Gen.maybe $ Gen.int (Range.linear 0 maxBound)
+  lastEvalTime <- Gen.maybe $ Gen.int (Range.linear 0 maxBound)
+  errorMsg <- Gen.maybe genTitle
+  errorTime <- Gen.maybe $ Gen.int (Range.linear 0 maxBound)
+
+  pure
+    Jobset
+      { jsName = name',
+        jsProject = project',
+        jsId = id',
+        jsState = state',
+        jsVisible = visible,
+        jsType = jsType,
+        jsFlake = flake,
+        jsNixExprInput = nixExprInput,
+        jsNixExprPath = nixExprPath,
+        jsDescription = description,
+        jsCheckInterval = checkInterval,
+        jsSchedulingShares = schedulingShares,
+        jsEnableDynRunCmd = enableDynRunCmd,
+        jsEnableEmail = enableEmail,
+        jsEmailOverride = emailOverride,
+        jsKeepNumEvals = keepNumEvals,
+        jsLastCheckedTime = lastCheckedTime,
+        jsLastEvalTime = lastEvalTime,
+        jsErrorMsg = errorMsg,
+        jsErrorTime = errorTime
+      }
+
+jobsetName :: Gen JobsetName
+jobsetName = JobsetName <$> genTitle
+
+jobsetId :: Gen JobsetId
+jobsetId = JobsetId <$> Gen.int (Range.linear 0 maxBound)
+
+jobsetState :: Gen JobsetState
+jobsetState = Gen.element [JssEnabled, JssDisabled, JssOneShot, JssOneAtATime]
+
+jobsetType :: Gen JobsetType
+jobsetType = Gen.element [JstFlake, JstLegacy]
 
 genTitle :: Gen Text
 genTitle = Gen.text (Range.linear 0 255) Gen.unicode

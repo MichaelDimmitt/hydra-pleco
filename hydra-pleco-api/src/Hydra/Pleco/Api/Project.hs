@@ -5,7 +5,10 @@ module Hydra.Pleco.Api.Project
 
 import Data.Aeson (FromJSON, KeyValue (..), ToJSON, (.:))
 import Data.Aeson qualified as Aeson
-import Data.OpenApi (ToParamSchema, ToSchema)
+import Data.HashMap.Strict.InsOrd.Compat qualified as InsOrd
+import Data.OpenApi (ToParamSchema, ToSchema (..))
+import Data.OpenApi qualified as OpenApi
+import Optics ((.~), (?~))
 import Servant.API (FromHttpApiData, ToHttpApiData)
 
 data Project = Project
@@ -21,12 +24,42 @@ data Project = Project
     prjDeclInputType :: Maybe Text
   }
   deriving stock (Eq, Generic, Show)
-  deriving anyclass (ToSchema)
 
 newtype ProjectId = ProjectId {unProjectId :: Text}
   deriving stock (Eq, Generic, Ord, Show)
-  deriving anyclass (ToSchema)
-  deriving newtype (ToJSON, FromJSON, FromHttpApiData, ToParamSchema, ToHttpApiData)
+  deriving newtype (ToJSON, FromJSON, FromHttpApiData, ToParamSchema, ToHttpApiData, ToSchema)
+
+instance ToSchema Project where
+  declareNamedSchema _ = do
+    let properties =
+          InsOrd.fromList
+            [ ("id", OpenApi.toSchemaRef (Proxy @ProjectId)),
+              ("enabled", OpenApi.toSchemaRef (Proxy @Bool)),
+              ("visible", OpenApi.toSchemaRef (Proxy @Bool)),
+              ("display_name", OpenApi.toSchemaRef (Proxy @Text)),
+              ("description", OpenApi.toSchemaRef (Proxy @(Maybe Text))),
+              ("homepage", OpenApi.toSchemaRef (Proxy @(Maybe Text))),
+              ("owner", OpenApi.toSchemaRef (Proxy @Text)),
+              ("enable_dynamic_runcommand_hooks", OpenApi.toSchemaRef (Proxy @Bool)),
+              ("declarative_spec_file", OpenApi.toSchemaRef (Proxy @(Maybe FilePath))),
+              ("declarative_input_type", OpenApi.toSchemaRef (Proxy @(Maybe Text)))
+            ]
+
+        required =
+          [ "id",
+            "enabled",
+            "visible",
+            "display_name",
+            "owner",
+            "enable_dynamic_runcommand_hooks"
+          ]
+
+    pure $
+      OpenApi.NamedSchema (Just "Project") $
+        mempty
+          & #properties .~ properties
+          & #required .~ required
+          & #type ?~ OpenApi.OpenApiObject
 
 instance ToJSON Project where
   toJSON Project {..} =

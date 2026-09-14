@@ -2,6 +2,7 @@ module Main (main) where
 
 import Hydra.Pleco.Client
   ( BaseUrl (..),
+    JobsetName (..),
     PlecoClient,
     PlecoClientEnv,
     ProjectId (..),
@@ -9,7 +10,9 @@ import Hydra.Pleco.Client
     ToJSON,
     encodePretty,
     getHealth,
+    getJobset,
     getProject,
+    listJobsets,
     listProjects,
     mkPlecoClientEnv,
     parseBaseUrl,
@@ -32,6 +35,7 @@ data Command
   = CmdHealth
   | CmdEcho EchoCmdOpts
   | CmdProjects ProjectsSubCommand
+  | CmdJobsets JobsetsSubCommand
   deriving stock (Eq, Ord, Show)
 
 newtype EchoCmdOpts = EchoCmdOpts
@@ -42,6 +46,11 @@ newtype EchoCmdOpts = EchoCmdOpts
 data ProjectsSubCommand
   = CmdProjectsList
   | CmdProjectsView ProjectId
+  deriving stock (Eq, Ord, Show)
+
+data JobsetsSubCommand
+  = CmdJobsetsList ProjectId
+  | CmdJobsetsView ProjectId JobsetName
   deriving stock (Eq, Ord, Show)
 
 main :: IO ()
@@ -66,6 +75,7 @@ run opts@GlobalOpts {optCommand}
   | CmdHealth <- optCommand = runHealth opts
   | CmdEcho EchoCmdOpts {echoOptPort} <- optCommand = runEcho echoOptPort
   | CmdProjects subCmd <- optCommand = runProjects subCmd opts
+  | CmdJobsets subCmd <- optCommand = runJobsets subCmd opts
 
 runHealth :: GlobalOpts -> IO ()
 runHealth = runClient' getHealth
@@ -76,6 +86,10 @@ runEcho = runEchoServer
 runProjects :: ProjectsSubCommand -> GlobalOpts -> IO ()
 runProjects CmdProjectsList = runClient' listProjects
 runProjects (CmdProjectsView p) = runClient' (getProject p)
+
+runJobsets :: JobsetsSubCommand -> GlobalOpts -> IO ()
+runJobsets (CmdJobsetsList projectId) = runClient' (listJobsets projectId)
+runJobsets (CmdJobsetsView projectId jobsetName) = runClient' (getJobset projectId jobsetName)
 
 globalOpts :: ParserInfo GlobalOpts
 globalOpts =
@@ -115,6 +129,7 @@ parseCommand =
     Opt.command "health" parseHealthCmd
       <> Opt.command "echo" parseEchoCmd
       <> Opt.command "projects" projectsOpts
+      <> Opt.command "jobsets" jobsetsOpts
 
 parseHealthCmd :: ParserInfo Command
 parseHealthCmd = Opt.info parseHealthOpt healthCmdInfo
@@ -167,3 +182,32 @@ parseProjectId =
   Opt.argument (ProjectId <$> Opt.str) $
     Opt.metavar "NAME"
       <> Opt.help "Hydra project identifier"
+
+jobsetsOpts :: ParserInfo Command
+jobsetsOpts = Opt.info (CmdJobsets <$> parseJobsetsCmd) jobsetsCmdInfo
+  where
+    jobsetsCmdInfo = Opt.progDesc "List or view Hydra jobsets"
+
+parseJobsetsCmd :: Parser JobsetsSubCommand
+parseJobsetsCmd =
+  Opt.hsubparser $
+    Opt.command "list" parseJobsetsListCmd
+      <> Opt.command "view" parseJobsetsViewCmd
+
+parseJobsetsListCmd :: ParserInfo JobsetsSubCommand
+parseJobsetsListCmd =
+  Opt.info (CmdJobsetsList <$> parseProjectId) jobsetsListCmdInfo
+  where
+    jobsetsListCmdInfo = Opt.progDesc "List a Hydra jobsets for a project"
+
+parseJobsetsViewCmd :: ParserInfo JobsetsSubCommand
+parseJobsetsViewCmd =
+  Opt.info (CmdJobsetsView <$> parseProjectId <*> parseJobsetName) jobsetsViewCmdInfo
+  where
+    jobsetsViewCmdInfo = Opt.progDesc "View a Hydra jobset"
+
+parseJobsetName :: Parser JobsetName
+parseJobsetName =
+  Opt.argument (JobsetName <$> Opt.str) $
+    Opt.metavar "NAME"
+      <> Opt.help "Hydra jobset name"

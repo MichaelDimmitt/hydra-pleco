@@ -11,6 +11,8 @@ module Hydra.Pleco.Client
     getHealth,
     getProject,
     listProjects,
+    listJobsets,
+    getJobset,
 
     -- * Running the reference webhook server
     runEchoServer,
@@ -24,17 +26,20 @@ module Hydra.Pleco.Client
     Api.Project (..),
     Api.ProjectId (..),
     Api.Jobset (..),
+    Api.JobsetId (..),
+    Api.JobsetName (..),
+    Api.JobsetType (..),
 
     -- * Re-exports
     BaseUrl (..),
     Servant.Scheme (..),
-    parseBaseUrl,
+    Servant.parseBaseUrl,
     FromJSON,
     ToJSON,
     Aeson.encodePretty,
   ) where
 
-import Hydra.Pleco.Api (Health, HydraApi, Project, ProjectId)
+import Hydra.Pleco.Api (Health, HydraApi, Jobset, Project, ProjectId)
 import Hydra.Pleco.Api qualified as Api
 import Hydra.Pleco.Client.EchoServer (runEchoServer)
 
@@ -42,7 +47,7 @@ import Control.Exception (throwIO)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.Encode.Pretty qualified as Aeson
 import Network.HTTP.Client (defaultManagerSettings, newManager)
-import Servant.Client (AsClientT, BaseUrl, ClientEnv, ClientError, ClientM, parseBaseUrl, (//))
+import Servant.Client (AsClientT, BaseUrl, ClientEnv, ClientError, ClientM, (//), (/:))
 import Servant.Client qualified as Servant
 import Servant.Client.Generic (genericClientHoist)
 
@@ -88,3 +93,19 @@ listProjects = plecoClient // Api.projects // Api.listProjects
 
 getProject :: ProjectId -> PlecoClient Project
 getProject = plecoClient // Api.projects // Api.getProject
+
+listJobsets :: ProjectId -> PlecoClient [Jobset]
+listJobsets projectId =
+  plecoClient
+    // Api.projects
+    // Api.jobsets
+    /: projectId
+    // Api.listJobsets
+
+getJobset :: ProjectId -> Api.JobsetName -> PlecoClient Jobset
+getJobset projectId =
+  plecoClient
+    // Api.projects
+    // Api.jobsets
+    /: projectId
+    // Api.getJobset

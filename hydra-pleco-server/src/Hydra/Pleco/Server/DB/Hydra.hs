@@ -8,6 +8,8 @@ module Hydra.Pleco.Server.DB.Hydra
     eachProject,
     projectByName,
     jobsetById,
+    jobsetsByProject,
+    jobsetByProjectAndName,
     hydraNotifyChannels,
     parseHydraNotification,
   ) where
@@ -22,6 +24,7 @@ import Rel8
     Rel8able,
     Result,
     TableSchema,
+    (&&.),
     (==.),
   )
 import Rel8 qualified
@@ -55,8 +58,10 @@ data Jobset f = Jobset
     jsErrorTime :: Column f (Maybe Int64),
     jsLastCheckedTime :: Column f (Maybe Int64),
     jsTriggerTime :: Column f (Maybe Int64),
-    jsEnabled :: Column f Bool,
-    jsEnableEmail :: Column f Text,
+    jsEnabled :: Column f Int64,
+    jsEnableEmail :: Column f Bool,
+    jsEmailOverride :: Column f Text,
+    jsKeepNumEvals :: Column f Int64,
     jsHidden :: Column f Bool,
     jsCheckInterval :: Column f Int64,
     jsSchedulingShares :: Column f Int64,
@@ -108,6 +113,8 @@ jobsetSchema = Rel8.TableSchema {name = "jobsets", columns = columnSchema}
           jsTriggerTime = "triggertime",
           jsEnabled = "enabled",
           jsEnableEmail = "enableemail",
+          jsEmailOverride = "emailoverride",
+          jsKeepNumEvals = "keepnr",
           jsHidden = "hidden",
           jsCheckInterval = "checkinterval",
           jsSchedulingShares = "schedulingshares",
@@ -150,6 +157,25 @@ jobsetById jobsetId =
     Rel8.select $ do
       jobsets <- Rel8.each jobsetSchema
       Rel8.where_ $ jsId jobsets ==. Rel8.lit jobsetId
+      pure jobsets
+
+jobsetsByProject :: Text -> Statement () [Jobset Result]
+jobsetsByProject projectName =
+  Rel8.run $
+    Rel8.select $ do
+      jobsets <- Rel8.each jobsetSchema
+      Rel8.where_ $ jsProject jobsets ==. Rel8.lit projectName
+      pure jobsets
+
+jobsetByProjectAndName :: Text -> Text -> Statement () (Jobset Result)
+jobsetByProjectAndName projectName jobsetName =
+  Rel8.run1 $
+    Rel8.select $ do
+      jobsets <- Rel8.each jobsetSchema
+      Rel8.where_ $
+        jsProject jobsets ==. Rel8.lit projectName
+          &&. jsName jobsets ==. Rel8.lit jobsetName
+
       pure jobsets
 
 hydraNotifyChannels :: [Text]

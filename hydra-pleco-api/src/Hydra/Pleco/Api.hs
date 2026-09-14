@@ -11,7 +11,12 @@ module Hydra.Pleco.Api
     ProjectsApi (..),
     Project (..),
     ProjectId (..),
+    JobsetsApi (..),
     Jobset (..),
+    JobsetId (..),
+    JobsetName (..),
+    JobsetState (..),
+    JobsetType (..),
     hydraApi,
     hydraOpenApi,
     jobsetEventApi,
@@ -19,15 +24,18 @@ module Hydra.Pleco.Api
 
 import Hydra.Pleco.Api.Event
   ( EventType (..),
-    Jobset (..),
     JobsetEvent (..),
     JobsetEventApi (..),
     jobsetEventApi,
   )
-import Hydra.Pleco.Api.Project
-  ( Project (..),
-    ProjectId (..),
+import Hydra.Pleco.Api.Jobset
+  ( Jobset (..),
+    JobsetId (..),
+    JobsetName (..),
+    JobsetState (..),
+    JobsetType (..),
   )
+import Hydra.Pleco.Api.Project (Project (..), ProjectId (..))
 
 import Data.Aeson
   ( FromJSON,
@@ -56,6 +64,8 @@ import Servant.API
 import Servant.OpenApi (HasOpenApi (..))
 import Servant.Swagger.UI (SwaggerSchemaUI)
 
+-- TODO[sgillespie]: prefix fields to prevent naming conflicts
+
 -- | Documented API routes. OpenApi spec is generated from this.
 data HydraApi mode = HydraApi
   { health :: mode :- "health" :> Get '[HealthJSON] Health,
@@ -72,7 +82,14 @@ data WebhooksApi mode = WebhooksApi
 
 data ProjectsApi mode = ProjectsApi
   { listProjects :: mode :- Get '[JSON] [Project],
-    getProject :: mode :- Capture "project-id" ProjectId :> Get '[JSON] Project
+    getProject :: mode :- Capture "project-id" ProjectId :> Get '[JSON] Project,
+    jobsets :: mode :- Capture "project-id" ProjectId :> "jobsets" :> NamedRoutes JobsetsApi
+  }
+  deriving stock (Generic)
+
+data JobsetsApi mode = JobsetsApi
+  { getJobset :: mode :- Capture "jobset-name" JobsetName :> Get '[JSON] Jobset,
+    listJobsets :: mode :- Get '[JSON] [Jobset]
   }
   deriving stock (Generic)
 

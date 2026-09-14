@@ -60,6 +60,8 @@ library
     Hydra.Pleco.Server.DB
     Hydra.Pleco.Server.DB.Hydra
     Hydra.Pleco.Server.Error
+    Hydra.Pleco.Server.Jobsets
+    Hydra.Pleco.Server.Jobsets.DB
     Hydra.Pleco.Server.Monad
     Hydra.Pleco.Server.Projects
     Hydra.Pleco.Server.Projects.DB

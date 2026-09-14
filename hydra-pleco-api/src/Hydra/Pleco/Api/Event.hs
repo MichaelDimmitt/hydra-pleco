@@ -2,10 +2,10 @@ module Hydra.Pleco.Api.Event
   ( JobsetEventApi (..),
     JobsetEvent (..),
     EventType (..),
-    Jobset (..),
     jobsetEventApi,
   ) where
 
+import Hydra.Pleco.Api.Jobset (JobsetName)
 import Hydra.Pleco.Api.Project (ProjectId (..))
 
 import Data.Aeson
@@ -19,7 +19,6 @@ import Data.HashMap.Strict.InsOrd.Compat qualified as InsOrd
 import Data.OpenApi (ToSchema)
 import Data.OpenApi qualified as OpenApi
 import Optics ((.~), (?~))
-import Relude.Extra (safeToEnum)
 import Servant.API (JSON, Post, ReqBody, (:-), (:>))
 
 newtype JobsetEventApi mode = JobsetEventApi
@@ -33,7 +32,7 @@ jobsetEventApi = Proxy
 data JobsetEvent = JobsetEvent
   { jeEventType :: EventType,
     jeProject :: ProjectId,
-    jeJobset :: Jobset
+    jeJobset :: JobsetName
   }
   deriving stock (Eq, Show, Generic)
 
@@ -44,15 +43,16 @@ instance ToSchema JobsetEvent where
     let properties =
           InsOrd.fromList
             [ ("event_type", eventTypeSchema),
-              ("project", OpenApi.toSchemaRef (Proxy @Text)),
-              ("jobset", OpenApi.toSchemaRef (Proxy @Text))
+              ("project", OpenApi.toSchemaRef (Proxy @ProjectId)),
+              ("jobset", OpenApi.toSchemaRef (Proxy @JobsetName))
             ]
 
     pure $
       OpenApi.NamedSchema (Just "JobsetEvent") $
         mempty
           & #properties .~ properties
-          & #required .~ ["event_type"]
+          & #required .~ ["event_type", "project", "jobset"]
+          & #type ?~ OpenApi.OpenApiObject
 
 instance ToJSON JobsetEvent where
   toJSON JobsetEvent {..} =
@@ -94,14 +94,11 @@ data EventType
   deriving stock (Bounded, Eq, Enum, Ord, Show, Generic)
 
 instance ToSchema EventType where
-  declareNamedSchema _ = do
-    let allEventTypes :: [EventType]
-        allEventTypes = maybe [] enumFrom (safeToEnum 0)
-
+  declareNamedSchema _ =
     pure $
       OpenApi.NamedSchema (Just "EventType") $
         mempty
-          & #enum ?~ map Aeson.toJSON allEventTypes
+          & #enum ?~ map Aeson.toJSON (universe @EventType)
           & #type ?~ OpenApi.OpenApiString
 
 instance ToJSON EventType where
@@ -127,8 +124,3 @@ instance FromJSON EventType where
     "build_finished" -> pure BuildFinished
     "cached_build_finished" -> pure CachedBuildFinished
     e -> fail (toString e)
-
-newtype Jobset = Jobset {unJobset :: Text}
-  deriving stock (Eq, Generic, Ord, Show)
-  deriving anyclass (ToSchema)
-  deriving newtype (ToJSON, FromJSON)

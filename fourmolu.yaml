@@ -11,8 +11,12 @@ let-style: inline
 in-style: left-align
 respectful: true
 fixities:
+  # Lenses
   - "infixl 1 &"
   - "infixl 9 %"
   - "infixr 4 .~, ?~, %~"
   - "infixl 8 ^."
+  # Rel8
+  - "infixr 3 &&."
+  - "infixr 4 ==."
 unicode: never
