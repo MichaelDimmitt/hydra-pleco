@@ -10,10 +10,14 @@ module Hydra.Pleco.Api.Gen
     jobsetId,
     jobsetState,
     jobsetType,
+    eval,
+    evalId,
   ) where
 
 import Hydra.Pleco.Api
-  ( EventType (..),
+  ( Eval (..),
+    EvalId (..),
+    EventType (..),
     Health (..),
     Jobset (..),
     JobsetEvent (..),
@@ -139,6 +143,36 @@ jobset = do
         jsErrorMsg = errorMsg,
         jsErrorTime = errorTime
       }
+
+eval :: Gen Eval
+eval = do
+  id' <- evalId
+  jobsetId' <- jobsetId
+  timestamp <- Gen.int (Range.linear 0 maxBound)
+  checkoutTime <- Gen.int (Range.linear 0 maxBound)
+  evalTime <- Gen.int (Range.linear 0 maxBound)
+  hasNewBuilds <- Gen.bool
+  hash' <- genTitle
+  numBuilds <- Gen.maybe $ Gen.int (Range.linear 0 maxBound)
+  numSucceeded <- Gen.maybe $ Gen.int (Range.linear 0 maxBound)
+  flake <- Gen.maybe genUrl
+
+  pure
+    Eval
+      { evId = id',
+        evJobsetId = jobsetId',
+        evTimestamp = timestamp,
+        evCheckoutTime = checkoutTime,
+        evEvalTime = evalTime,
+        evHasNewBuilds = hasNewBuilds,
+        evHash = hash',
+        evNumBuilds = numBuilds,
+        evNumSucceeded = numSucceeded,
+        evFlake = flake
+      }
+
+evalId :: Gen EvalId
+evalId = EvalId <$> Gen.int (Range.linear 0 maxBound)
 
 jobsetName :: Gen JobsetName
 jobsetName = JobsetName <$> genTitle

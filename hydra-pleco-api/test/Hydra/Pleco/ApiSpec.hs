@@ -130,3 +130,25 @@ spec = do
       hedgehog $ do
         jsType <- forAll Gen.jobsetType
         validateToJSON jsType === []
+
+  describe "Eval" $ do
+    it "round-trips through Aeson" $
+      hedgehog $ do
+        ev <- forAll Gen.eval
+        tripping ev Aeson.encode Aeson.eitherDecode
+
+    it "conforms to its OpenApi schema" $
+      hedgehog $ do
+        ev <- forAll Gen.eval
+        validateToJSON ev === []
+
+  describe "EvalId" $ do
+    it "round-trips through Aeson" $
+      hedgehog $ do
+        id' <- forAll Gen.evalId
+        tripping id' Aeson.encode Aeson.eitherDecode
+
+    it "conforms to its OpenApi schema" $
+      hedgehog $ do
+        id' <- forAll Gen.evalId
+        validateToJSON id' === []

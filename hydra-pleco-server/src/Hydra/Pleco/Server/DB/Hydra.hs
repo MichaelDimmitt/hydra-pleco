@@ -2,14 +2,19 @@ module Hydra.Pleco.Server.DB.Hydra
   ( Project (..),
     Jobset (..),
     JobsetId (..),
+    JobsetEval (..),
+    JobsetEvalId (..),
     HydraNotification (..),
     projectSchema,
     jobsetSchema,
+    jobsetEvalSchema,
     eachProject,
     projectByName,
     jobsetById,
     jobsetsByProject,
     jobsetByProjectAndName,
+    jobsetEvalsByProjectAndJobset,
+    jobsetEvalByProjectAndJobset,
     hydraNotifyChannels,
     parseHydraNotification,
   ) where
@@ -126,6 +131,41 @@ jobsetSchema = Rel8.TableSchema {name = "jobsets", columns = columnSchema}
           jsEnableDynCmd = "enable_dynamic_run_command"
         }
 
+data JobsetEval f = JobsetEval
+  { jseId :: Column f JobsetEvalId,
+    jseJobsetId :: Column f JobsetId,
+    jseTimestamp :: Column f Int64,
+    jseCheckoutTime :: Column f Int64,
+    jseEvalTime :: Column f Int64,
+    jseHasNewBuilds :: Column f Int64,
+    jseHash :: Column f Text,
+    jseNumBuilds :: Column f (Maybe Int64),
+    jseNumSucceeded :: Column f (Maybe Int64),
+    jseFlake :: Column f (Maybe Text)
+  }
+  deriving stock (Generic)
+  deriving anyclass (Rel8able)
+
+deriving stock instance (f ~ Result) => Eq (JobsetEval f)
+deriving stock instance (f ~ Result) => Show (JobsetEval f)
+
+jobsetEvalSchema :: TableSchema (JobsetEval Name)
+jobsetEvalSchema = Rel8.TableSchema {name = "jobsetevals", columns = columnSchema}
+  where
+    columnSchema =
+      JobsetEval
+        { jseId = "id",
+          jseJobsetId = "jobset_id",
+          jseTimestamp = "timestamp",
+          jseCheckoutTime = "checkouttime",
+          jseEvalTime = "evaltime",
+          jseHasNewBuilds = "hasnewbuilds",
+          jseHash = "hash",
+          jseNumBuilds = "nrbuilds",
+          jseNumSucceeded = "nrsucceeded",
+          jseFlake = "flake"
+        }
+
 data HydraNotification
   = HydraEvalAdded JobsetId JobsetEvalId
   | HydraEvalStarted JobsetId
@@ -136,9 +176,9 @@ data HydraNotification
 newtype JobsetId = JobsetId {unJobsetId :: Int64}
   deriving newtype (DBEq, DBType, Eq, Read, Show)
 
-newtype JobsetEvalId = JobsetEvalId {unJobsetEvalId :: Int}
+newtype JobsetEvalId = JobsetEvalId {unJobsetEvalId :: Int64}
   deriving stock (Eq, Show)
-  deriving newtype (Read)
+  deriving newtype (DBEq, DBType, Read)
 
 eachProject :: Statement () [Project Result]
 eachProject = Rel8.run $ Rel8.select (Rel8.each projectSchema)
@@ -177,6 +217,37 @@ jobsetByProjectAndName projectName jobsetName =
           &&. jsName jobsets ==. Rel8.lit jobsetName
 
       pure jobsets
+
+jobsetEvalsByProjectAndJobset :: Text -> Text -> Statement () [JobsetEval Result]
+jobsetEvalsByProjectAndJobset projectName jobsetName =
+  Rel8.run $
+    Rel8.select $ do
+      evals <- Rel8.each jobsetEvalSchema
+      jobsets <- Rel8.each jobsetSchema
+      Rel8.where_ $
+        jseJobsetId evals ==. jsId jobsets
+          &&. jsProject jobsets ==. Rel8.lit projectName
+          &&. jsName jobsets ==. Rel8.lit jobsetName
+
+      pure evals
+
+jobsetEvalByProjectAndJobset
+  :: Text
+  -> Text
+  -> JobsetEvalId
+  -> Statement () (JobsetEval Result)
+jobsetEvalByProjectAndJobset projectName jobsetName evalId =
+  Rel8.run1 $
+    Rel8.select $ do
+      evals <- Rel8.each jobsetEvalSchema
+      jobsets <- Rel8.each jobsetSchema
+      Rel8.where_ $
+        jseId evals ==. Rel8.lit evalId
+          &&. jseJobsetId evals ==. jsId jobsets
+          &&. jsProject jobsets ==. Rel8.lit projectName
+          &&. jsName jobsets ==. Rel8.lit jobsetName
+
+      pure evals
 
 hydraNotifyChannels :: [Text]
 hydraNotifyChannels =

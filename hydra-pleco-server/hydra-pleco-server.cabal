@@ -60,6 +60,8 @@ library
     Hydra.Pleco.Server.DB
     Hydra.Pleco.Server.DB.Hydra
     Hydra.Pleco.Server.Error
+    Hydra.Pleco.Server.Evals
+    Hydra.Pleco.Server.Evals.DB
     Hydra.Pleco.Server.Jobsets
     Hydra.Pleco.Server.Jobsets.DB
     Hydra.Pleco.Server.Monad
@@ -121,6 +123,7 @@ test-suite tests
   hs-source-dirs: test
   main-is: Main.hs
   other-modules:
+    Hydra.Pleco.Server.EvalSpec
     Hydra.Pleco.Server.ProjectSpec
     Hydra.Pleco.ServerSpec
 

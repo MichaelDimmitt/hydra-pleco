@@ -1,8 +1,14 @@
 module Hydra.Pleco.Server.Gen
   ( project,
+    jobsetEval,
   ) where
 
-import Hydra.Pleco.Server.DB.Hydra (Project (..))
+import Hydra.Pleco.Server.DB.Hydra
+  ( JobsetEval (..),
+    JobsetEvalId (..),
+    JobsetId (..),
+    Project (..),
+  )
 
 import Hedgehog (Gen)
 import Hedgehog.Gen qualified as Gen
@@ -35,6 +41,37 @@ project = do
         prjDeclType = declType,
         prjEnableDynCmd = enableDynCmd
       }
+
+jobsetEval :: Gen (JobsetEval Result)
+jobsetEval = do
+  id' <- JobsetEvalId <$> genId
+  jobsetId <- JobsetId <$> genId
+  timestamp <- genId
+  checkoutTime <- genId
+  evalTime <- genId
+  -- Hydra stores hasnewbuilds as a 0/1 flag
+  hasNewBuilds <- Gen.element [0, 1]
+  hash' <- genTitle
+  numBuilds <- Gen.maybe genId
+  numSucceeded <- Gen.maybe genId
+  flake <- Gen.maybe genUrl
+
+  pure
+    JobsetEval
+      { jseId = id',
+        jseJobsetId = jobsetId,
+        jseTimestamp = timestamp,
+        jseCheckoutTime = checkoutTime,
+        jseEvalTime = evalTime,
+        jseHasNewBuilds = hasNewBuilds,
+        jseHash = hash',
+        jseNumBuilds = numBuilds,
+        jseNumSucceeded = numSucceeded,
+        jseFlake = flake
+      }
+
+genId :: Gen Int64
+genId = Gen.int64 (Range.linear 0 maxBound)
 
 genTitle :: Gen Text
 genTitle = Gen.text (Range.linear 0 255) Gen.unicode

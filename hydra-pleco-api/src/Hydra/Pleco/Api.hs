@@ -17,11 +17,15 @@ module Hydra.Pleco.Api
     JobsetName (..),
     JobsetState (..),
     JobsetType (..),
+    EvalsApi (..),
+    Eval (..),
+    EvalId (..),
     hydraApi,
     hydraOpenApi,
     jobsetEventApi,
   ) where
 
+import Hydra.Pleco.Api.Eval (Eval (..), EvalId (..))
 import Hydra.Pleco.Api.Event
   ( EventType (..),
     JobsetEvent (..),
@@ -89,7 +93,14 @@ data ProjectsApi mode = ProjectsApi
 
 data JobsetsApi mode = JobsetsApi
   { getJobset :: mode :- Capture "jobset-name" JobsetName :> Get '[JSON] Jobset,
-    listJobsets :: mode :- Get '[JSON] [Jobset]
+    listJobsets :: mode :- Get '[JSON] [Jobset],
+    evals :: mode :- Capture "jobset-name" JobsetName :> "evals" :> NamedRoutes EvalsApi
+  }
+  deriving stock (Generic)
+
+data EvalsApi mode = EvalsApi
+  { listEvals :: mode :- Get '[JSON] [Eval],
+    getEval :: mode :- Capture "eval-id" EvalId :> Get '[JSON] Eval
   }
   deriving stock (Generic)
 

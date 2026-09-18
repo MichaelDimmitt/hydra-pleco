@@ -13,6 +13,8 @@ module Hydra.Pleco.Client
     listProjects,
     listJobsets,
     getJobset,
+    listEvals,
+    getEval,
 
     -- * Running the reference webhook server
     runEchoServer,
@@ -29,6 +31,8 @@ module Hydra.Pleco.Client
     Api.JobsetId (..),
     Api.JobsetName (..),
     Api.JobsetType (..),
+    Api.Eval (..),
+    Api.EvalId (..),
 
     -- * Re-exports
     BaseUrl (..),
@@ -39,7 +43,7 @@ module Hydra.Pleco.Client
     Aeson.encodePretty,
   ) where
 
-import Hydra.Pleco.Api (Health, HydraApi, Jobset, Project, ProjectId)
+import Hydra.Pleco.Api (Eval, Health, HydraApi, Jobset, Project, ProjectId)
 import Hydra.Pleco.Api qualified as Api
 import Hydra.Pleco.Client.EchoServer (runEchoServer)
 
@@ -109,3 +113,23 @@ getJobset projectId =
     // Api.jobsets
     /: projectId
     // Api.getJobset
+
+listEvals :: ProjectId -> Api.JobsetName -> PlecoClient [Eval]
+listEvals projectId jobsetName =
+  plecoClient
+    // Api.projects
+    // Api.jobsets
+    /: projectId
+    // Api.evals
+    /: jobsetName
+    // Api.listEvals
+
+getEval :: ProjectId -> Api.JobsetName -> Api.EvalId -> PlecoClient Eval
+getEval projectId jobsetName =
+  plecoClient
+    // Api.projects
+    // Api.jobsets
+    /: projectId
+    // Api.evals
+    /: jobsetName
+    // Api.getEval

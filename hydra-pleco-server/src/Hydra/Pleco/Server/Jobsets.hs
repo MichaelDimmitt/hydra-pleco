@@ -3,6 +3,7 @@ module Hydra.Pleco.Server.Jobsets
   ) where
 
 import Hydra.Pleco.Api (Jobset (..), JobsetName (..), JobsetsApi (..), ProjectId (..))
+import Hydra.Pleco.Server.Evals (evalsHandler)
 import Hydra.Pleco.Server.Monad (PlecoServerEnv (..), PlecoServerT)
 
 import Hydra.Pleco.Server.DB (jobsetByProjectAndName, jobsetsByProject, runSession, statement)
@@ -13,7 +14,8 @@ jobsetsHandler :: ProjectId -> ServerT (NamedRoutes JobsetsApi) (PlecoServerT Ha
 jobsetsHandler projectId =
   JobsetsApi
     { listJobsets = listJobsetsHandler projectId,
-      getJobset = getJobsetHandler projectId
+      getJobset = getJobsetHandler projectId,
+      evals = evalsHandler projectId
     }
 
 listJobsetsHandler :: ProjectId -> PlecoServerT Handler [Jobset]
