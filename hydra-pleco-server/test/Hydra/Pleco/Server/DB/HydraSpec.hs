@@ -18,8 +18,8 @@ spec = describe "parseHydraNotification" $ do
   it "round-trips a rendered notification" $
     hedgehog $ do
       notification <- forAll Gen.hydraNotification
-      tripping 
-        notification 
+      tripping
+        notification
         (renderHydraNotification hydraTraceId)
         (uncurry parseHydraNotification)
 
@@ -86,4 +86,3 @@ badTwoFieldPayloads =
     hydraTraceId <> "\t123\t456", -- three fields
     hydraTraceId <> "\tabc" -- a non-integer jobset id
   ]
-

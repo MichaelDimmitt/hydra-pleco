@@ -1,5 +1,6 @@
 module Hydra.Pleco.Server.DB
   ( newConnectionPool,
+    withConnectionPool,
     testConnection,
     releaseConnectionPool,
     runSession,
@@ -20,10 +21,11 @@ import Hasql.Pool (Pool)
 import Hasql.Pool qualified as Pool
 import Hasql.Pool.Config qualified as Pool
 import Hasql.Session (Session, statement)
-import UnliftIO.Exception (throwIO)
+import UnliftIO (MonadUnliftIO)
+import UnliftIO.Exception (bracket, throwIO)
 
-newConnectionPool :: (MonadIO io) => io Pool
-newConnectionPool = liftIO $ Pool.acquire poolCfg
+newConnectionPool :: (MonadIO io) => Text -> io Pool
+newConnectionPool connInfo = liftIO $ Pool.acquire poolCfg
   where
     poolCfg =
       Pool.settings
@@ -31,11 +33,15 @@ newConnectionPool = liftIO $ Pool.acquire poolCfg
           Pool.acquisitionTimeout 10,
           Pool.agingTimeout 86_400, -- One day
           Pool.idlenessTimeout 600, -- 10 minutes
-          Pool.staticConnectionSettings [connectionString]
+          Pool.staticConnectionSettings [connectionSetting connInfo]
         ]
 
-connectionString :: Setting
-connectionString = connection (string "dbname=hydra")
+withConnectionPool :: (MonadUnliftIO io) => Text -> (Pool -> io a) -> io a
+withConnectionPool connInfo = bracket (newConnectionPool connInfo) releaseConnectionPool
+
+-- | libpq reads an empty conninfo from the PG* environment
+connectionSetting :: Text -> Setting
+connectionSetting = connection . string
 
 testConnection :: (MonadIO io) => Pool -> io ()
 testConnection pool = do
@@ -50,9 +56,9 @@ runSession pool session = do
   res <- liftIO $ Pool.use pool session
   either throwIO pure res
 
-newConnection :: (MonadIO io) => io Connection
-newConnection = do
-  res <- liftIO $ Connection.acquire [connectionString]
+newConnection :: (MonadIO io) => Text -> io Connection
+newConnection connInfo = do
+  res <- liftIO $ Connection.acquire [connectionSetting connInfo]
   either
     (throwIO . ServerDbConnectionError)
     pure

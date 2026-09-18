@@ -20,6 +20,7 @@ module Hydra.Pleco.Server.DB.Hydra
     renderHydraNotification,
   ) where
 
+import Data.Text qualified as Text
 import Hasql.Statement (Statement)
 import Hydra.Pleco.Server.Error (PlecoServerError (..))
 import Rel8
@@ -34,7 +35,6 @@ import Rel8
     (==.),
   )
 import Rel8 qualified
-import qualified Data.Text as Text
 
 data Project f = Project
   { prjName :: Column f Text,
@@ -81,6 +81,9 @@ data Jobset f = Jobset
   }
   deriving stock (Generic)
   deriving anyclass (Rel8able)
+
+deriving stock instance Eq (Jobset Result)
+deriving stock instance Show (Jobset Result)
 
 projectSchema :: TableSchema (Project Name)
 projectSchema =
@@ -289,11 +292,9 @@ renderHydraNotification traceId' = \case
     ("eval_cached", mkPayload [renderJobsetId jobsetId, renderJobsetEvalId evalId])
   HydraEvalFailed jobsetId ->
     ("eval_failed", mkPayload [renderJobsetId jobsetId])
-
   where
     mkPayload :: [Text] -> Text
-    mkPayload = Text.intercalate "\t" . (traceId':)
+    mkPayload = Text.intercalate "\t" . (traceId' :)
 
     renderJobsetId = show . unJobsetId
     renderJobsetEvalId = show . unJobsetEvalId
-

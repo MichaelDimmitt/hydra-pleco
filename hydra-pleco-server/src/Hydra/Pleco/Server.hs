@@ -42,19 +42,19 @@ runServer port env = runPlecoServerT env $ do
 
 runApp :: Port -> PlecoServerT IO ()
 runApp port = do
-  env@PlecoServerEnv {pseDbPool} <- ask
+  env@PlecoServerEnv {pseDbConnInfo, pseDbPool} <- ask
 
   Katip.logFM Katip.InfoS $ "Starting pleco-server at http://localhost:" <> show port
   bracket_
-    (init' pseDbPool)
+    (init' pseDbConnInfo pseDbPool)
     (finalize pseDbPool)
     (liftIO $ Warp.runSettings (settings port) (app env))
   where
-    init' :: Pool -> PlecoServerT IO ()
-    init' dbPool = do
+    init' :: Text -> Pool -> PlecoServerT IO ()
+    init' connInfo dbPool = do
       -- Test connecting to the database, log and fail on exception
       testConnection dbPool `Katip.logExceptionM` Katip.ErrorS
-      Katip.logFM Katip.InfoS $ "Connection to database '" <> "dbname=hydra" <> "' successful"
+      Katip.logFM Katip.InfoS $ "Connection to database '" <> Katip.ls connInfo <> "' successful"
 
     finalize :: Pool -> PlecoServerT IO ()
     finalize dbPool = do
@@ -63,7 +63,8 @@ runApp port = do
 
 runHydraWatcher :: PlecoServerT IO ()
 runHydraWatcher = do
-  Katip.logFM Katip.InfoS "Starting Hydra watcher at db=hydra"
+  connInfo <- asks pseDbConnInfo
+  Katip.logFM Katip.InfoS $ "Starting Hydra watcher at '" <> Katip.ls connInfo <> "'"
   watchHydraEvents
 
 settings :: Port -> Settings

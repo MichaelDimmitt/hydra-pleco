@@ -54,7 +54,17 @@ test *args:
       {{ args }} \
       ".#checks.{{ system }}.hydra-pleco-api:test:tests" \
       ".#checks.{{ system }}.hydra-pleco-server:test:tests" \
+      ".#checks.{{ system }}.hydra-pleco-server:test:db-tests" \
       ".#checks.{{ system }}.hydra-pleco-cli:test:tests"
+
+# Run the database test suite against an ephemeral database
+test-db *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    pgconn=$(pg_tmp -t | sed -n 's/[^@]*@\([^:]*\):\([^/]*\).*/host=\1 port=\2/p')
+    export PLECO_TEST_DATABASE_URL="$pgconn dbname=test"
+    export PLECO_TEST_HYDRA_SCHEMA=$(nix build --no-link --print-out-paths ".#hydra-schema")
+    cabal test hydra-pleco-server:test:db-tests {{ args }}
 
 # Run basic checks
 check-light *args:
@@ -66,6 +76,7 @@ check-light *args:
       ".#checks.{{ system }}.treefmt" \
       ".#checks.{{ system }}.hydra-pleco-api:test:tests" \
       ".#checks.{{ system }}.hydra-pleco-server:test:tests" \
+      ".#checks.{{ system }}.hydra-pleco-server:test:db-tests" \
       ".#checks.{{ system }}.hydra-pleco-cli:test:tests"
 
 # Run the full flake check (every check, all systems)

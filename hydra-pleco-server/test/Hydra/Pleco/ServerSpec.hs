@@ -16,11 +16,12 @@ import Hydra.Pleco.Server.TestApp (mkTestEnv, withPlecoApp)
 import Network.HTTP.Client
   ( Request (..),
     RequestBody (..),
+    Response,
     defaultManagerSettings,
     httpLbs,
     newManager,
     parseRequest,
-    responseStatus, Response,
+    responseStatus,
   )
 import Network.HTTP.Types (statusCode)
 import Network.Wai.Handler.Warp (Port)
@@ -31,7 +32,7 @@ spec :: Spec
 spec = do
   describe "runPlecoServerT" $
     it "runs an action in the reader environment" $ do
-      env <- mkPlecoServerEnv []
+      env <- mkPlecoServerEnv "" []
       ns <- runPlecoServerT env (asks pseLogNamespace)
       pseLogNamespace env `shouldBe` ns
 
@@ -42,7 +43,7 @@ spec = do
 
     it "returns 406 when client does not accept health+json" $
       withServer [] $ \port -> do
-        let req' r = r { requestHeaders = [("Accept", "application/xml")] }
+        let req' r = r {requestHeaders = [("Accept", "application/xml")]}
 
         resp <- withRequest port "/health" req'
         statusCode (responseStatus resp) `shouldBe` 406
@@ -59,11 +60,12 @@ spec = do
 
     it "returns 400 on malformed body" $
       withServer [] $ \port -> do
-        let req' r = r
-              { method = "POST",
-                requestBody = RequestBodyLBS "{\"not-a-url\":true}",
-                requestHeaders = [("Content-Type", "application/json")]
-              }
+        let req' r =
+              r
+                { method = "POST",
+                  requestBody = RequestBodyLBS "{\"not-a-url\":true}",
+                  requestHeaders = [("Content-Type", "application/json")]
+                }
 
         resp <- withRequest port "/webhooks" req'
         statusCode (responseStatus resp) `shouldBe` 400
@@ -80,8 +82,9 @@ spec = do
 
 withServer :: [Subscription] -> (Port -> IO a) -> IO a
 withServer subs act = do
-  pool <- newConnectionPool
-  env <- mkTestEnv pool subs
+  let connInfo = ""
+  pool <- newConnectionPool connInfo
+  env <- mkTestEnv connInfo pool subs
   withPlecoApp env act
 
 client :: Port -> PlecoClient a -> IO a

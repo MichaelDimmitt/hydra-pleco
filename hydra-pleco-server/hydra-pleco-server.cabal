@@ -12,6 +12,7 @@ copyright: 2026 Sean D Gillespie
 category: Development
 build-type: Simple
 tested-with: ghc ==9.10.*
+extra-source-files: db-test/data/seed.sql
 
 common common-options
   build-depends:
@@ -97,8 +98,10 @@ library testlib
   exposed-modules:
     Hydra.Pleco.Server.Gen
     Hydra.Pleco.Server.TestApp
+    Hydra.Pleco.Server.TestDb
 
   build-depends:
+    hasql,
     hasql-pool,
     hedgehog,
     http-client,
@@ -144,6 +147,33 @@ test-suite tests
     hydra-pleco-cli,
     hydra-pleco-server,
     hydra-pleco-server:testlib,
+    servant-client,
+    warp,
+
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+test-suite db-tests
+  import: common-options
+  type: exitcode-stdio-1.0
+  hs-source-dirs: db-test
+  main-is: Main.hs
+  other-modules:
+    Hydra.Pleco.Server.HydraDbSpec
+    Hydra.Pleco.Server.ProjectsSpec
+    Hydra.Pleco.Server.WebhookSpec
+
+  build-depends:
+    hasql,
+    hasql-pool,
+    hspec,
+    http-types,
+    hydra-pleco-cli,
+    hydra-pleco-server,
+    hydra-pleco-server:testlib,
+    rel8,
     servant-client,
     warp,
 

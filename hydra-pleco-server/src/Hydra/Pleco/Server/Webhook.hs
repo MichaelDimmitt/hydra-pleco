@@ -3,6 +3,7 @@ module Hydra.Pleco.Server.Webhook
     webhooksSubscribeHandler,
     webhooksListHandler,
     watchHydraEvents,
+    sendWebhook,
     fromHydraNotification,
   ) where
 
@@ -40,7 +41,8 @@ webhooksListHandler = readTVarIO =<< asks pseSubscriptions
 
 watchHydraEvents :: PlecoServerT IO ()
 watchHydraEvents = do
-  bracket newConnection releaseConnection $ \conn ->
+  connInfo <- asks pseDbConnInfo
+  bracket (newConnection connInfo) releaseConnection $ \conn ->
     withRunInIO $ \run -> do
       -- Register this session as listener to hydra-notify channels (eval_started,
       -- eval_added, etc)

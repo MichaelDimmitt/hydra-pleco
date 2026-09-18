@@ -19,6 +19,8 @@
 
         # Project build via haskell.nix
         ./nix/haskell-project.nix
+        # Hydra SQL schema
+        ./nix/hydra-schema.nix
         # Platform-specific release distribution archives
         ./nix/distribution.nix
         # Tests and static analyzers

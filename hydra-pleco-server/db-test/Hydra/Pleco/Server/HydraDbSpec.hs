@@ -1,0 +1,125 @@
+module Hydra.Pleco.Server.HydraDbSpec (spec) where
+
+import Hydra.Pleco.Server.DB (runSession, statement)
+import Hydra.Pleco.Server.DB.Hydra
+  ( Jobset (..),
+    JobsetEval (..),
+    JobsetEvalId (..),
+    JobsetId (..),
+    Project (..),
+    eachProject,
+    jobsetById,
+    jobsetByProjectAndName,
+    jobsetEvalByProjectAndJobset,
+    jobsetEvalsByProjectAndJobset,
+    jobsetsByProject,
+    projectByName,
+  )
+
+import Hasql.Pool (Pool, UsageError)
+import Hasql.Statement (Statement)
+import Test.Hspec
+
+spec :: SpecWith (Text, Pool)
+spec = describe "Hydra.Pleco.Server.DB.Hydra" $ do
+  describe "eachProject" $ do
+    it "selects every project" $ \(_, pool) -> do
+      projects <- runStatement pool eachProject
+      map prjName projects `shouldMatchList` ["pleco", "hidden", "paused"]
+
+    it "decodes the scalar columns" $ \(_, pool) -> do
+      prj <- runStatement pool (projectByName "pleco")
+      prj
+        `shouldBe` Project
+          { prjName = "pleco",
+            prjDisplayName = "Pleco",
+            prjDescription = Just "A visible, enabled project",
+            prjEnabled = True,
+            prjHidden = False,
+            prjOwner = "alice",
+            prjHomepage = Just "https://example.org",
+            prjDeclFile = Nothing,
+            prjDeclType = Nothing,
+            prjEnableDynCmd = False
+          }
+
+  describe "projectByName" $ do
+    it "selects the expected project" $ \(_, pool) -> do
+      prj <- runStatement pool (projectByName "hidden")
+      prjName prj `shouldBe` "hidden"
+
+    it "throws when the project does not exist" $ \(_, pool) ->
+      runStatement pool (projectByName "bogus-project") `shouldThrow` isUsageError
+
+  describe "jobsetById" $ do
+    it "selects the expected jobset" $ \(_, pool) -> do
+      jobset <- runStatement pool (jobsetById (JobsetId 1))
+      jsName jobset `shouldBe` "main"
+      jsProject jobset `shouldBe` "pleco"
+
+    it "decodes the scalar columns" $ \(_, pool) -> do
+      jobset <- runStatement pool (jobsetById (JobsetId 1))
+      jobset
+        `shouldBe` Jobset
+          { jsName = "main",
+            jsId = JobsetId 1,
+            jsProject = "pleco",
+            jsDescription = Just "The main jobset",
+            jsNixExprInput = Nothing,
+            jsNixExprPath = Nothing,
+            jsErrorMsg = Nothing,
+            jsErrorTime = Nothing,
+            jsLastCheckedTime = Nothing,
+            jsTriggerTime = Nothing,
+            jsEnabled = 1,
+            jsEnableEmail = False,
+            jsEmailOverride = "",
+            jsKeepNumEvals = 3,
+            jsHidden = False,
+            jsCheckInterval = 300,
+            jsSchedulingShares = 100,
+            jsFetchErrorMsg = Nothing,
+            jsForceEval = Nothing,
+            jsStartTime = Nothing,
+            jsType = 1,
+            jsFlake = Just "github:sgillespie/hydra-pleco",
+            jsEnableDynCmd = False
+          }
+
+  describe "jobsetsByProject" $
+    it "selects expected jobsets" $ \(_, pool) -> do
+      jobsets <- runStatement pool (jobsetsByProject "pleco")
+      map jsName jobsets `shouldMatchList` ["main", "staging"]
+
+  describe "jobsetByProjectAndName" $
+    it "selects expected jobset" $ \(_, pool) -> do
+      js <- runStatement pool (jobsetByProjectAndName "pleco" "staging")
+      jsId js `shouldBe` JobsetId 2
+
+  describe "jobsetEvalsByProjectAndJobset" $
+    it "selects expected evals" $ \(_, pool) -> do
+      evals <- runStatement pool (jobsetEvalsByProjectAndJobset "pleco" "main")
+      map jseId evals `shouldMatchList` [JobsetEvalId 1, JobsetEvalId 2]
+
+  describe "jobsetEvalByProjectAndJobset" $
+    it "decodes the scalar columns" $ \(_, pool) -> do
+      eval <- runStatement pool (jobsetEvalByProjectAndJobset "pleco" "main" (JobsetEvalId 1))
+      eval
+        `shouldBe` JobsetEval
+          { jseId = JobsetEvalId 1,
+            jseJobsetId = JobsetId 1,
+            jseTimestamp = 1700000000,
+            jseCheckoutTime = 2,
+            jseEvalTime = 3,
+            jseHasNewBuilds = 1,
+            jseHash = "deadbeef",
+            jseNumBuilds = Just 5,
+            jseNumSucceeded = Just 5,
+            jseFlake = Just "github:sgillespie/hydra-pleco"
+          }
+
+runStatement :: Pool -> Statement () a -> IO a
+runStatement pool stmt = runSession pool (statement () stmt)
+
+isUsageError :: Selector UsageError
+isUsageError = const True

@@ -9,6 +9,7 @@ import Options.Applicative qualified as Opt
 
 data Options = Options
   { optPort :: !Port,
+    optDatabase :: !Text,
     optWebhooks :: ![Subscription]
   }
   deriving stock (Eq, Show)
@@ -17,8 +18,8 @@ main :: IO ()
 main = Opt.execParser optionsInfo >>= run
 
 run :: Options -> IO ()
-run Options {optPort, optWebhooks} = do
-  env <- mkPlecoServerEnv optWebhooks
+run Options {optPort, optDatabase, optWebhooks} = do
+  env <- mkPlecoServerEnv optDatabase optWebhooks
   runServer optPort env
 
 optionsInfo :: ParserInfo Options
@@ -32,7 +33,18 @@ parseOptions :: Parser Options
 parseOptions =
   Options
     <$> parsePort
+    <*> parseDatabase
     <*> parseWebhook
+
+parseDatabase :: Parser Text
+parseDatabase =
+  Opt.strOption $
+    Opt.long "database"
+      <> Opt.short 'd'
+      <> Opt.value "dbname=hydra"
+      <> Opt.showDefault
+      <> Opt.metavar "CONNINFO"
+      <> Opt.help "libpq connection string for the Hydra database"
 
 parsePort :: Parser Port
 parsePort =

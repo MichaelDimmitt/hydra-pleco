@@ -40,6 +40,7 @@ data PlecoServerEnv = PlecoServerEnv
     pseLogEnv :: LogEnv,
     pseSubscriptions :: TVar [Subscription],
     pseClientManager :: Manager,
+    pseDbConnInfo :: Text,
     pseDbPool :: Pool
   }
 
@@ -67,8 +68,8 @@ instance (MonadIO io) => KatipContext (PlecoServerT io) where
 runPlecoServerT :: PlecoServerEnv -> PlecoServerT m a -> m a
 runPlecoServerT env = usingReaderT env . unPlecoServerT
 
-mkPlecoServerEnv :: [Subscription] -> IO PlecoServerEnv
-mkPlecoServerEnv initialSubs = do
+mkPlecoServerEnv :: Text -> [Subscription] -> IO PlecoServerEnv
+mkPlecoServerEnv connInfo initialSubs = do
   logEnv <- Katip.initLogEnv "hydra-pleco" "production"
   scribe <-
     Katip.mkHandleScribeWithFormatter
@@ -79,7 +80,7 @@ mkPlecoServerEnv initialSubs = do
       Katip.V2
   logEnv' <- Katip.registerScribe "stderr" scribe Katip.defaultScribeSettings logEnv
   subs <- newTVarIO initialSubs
-  pool <- newConnectionPool
+  pool <- newConnectionPool connInfo
   manager' <- newManager defaultManagerSettings
 
   pure
@@ -88,6 +89,7 @@ mkPlecoServerEnv initialSubs = do
         pseLogCtx = mempty,
         pseLogEnv = logEnv',
         pseSubscriptions = subs,
+        pseDbConnInfo = connInfo,
         pseDbPool = pool,
         pseClientManager = manager'
       }

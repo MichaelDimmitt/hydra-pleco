@@ -13,6 +13,7 @@
 
   perSystem = {
     config,
+    hydraSchema,
     lib,
     pkgs,
     ...
@@ -38,10 +39,19 @@
           statix # nix static analysis
           deadnix # nix dead-code detector
           hlint # Haskell static analysis
+
+          hydra-cli # for comparison
+
+          pgcli # alternative to psql with better readline interactivity
+          postgresql # database server for testing
+          ephemeralpg # isolated/temporary postgresql databases for testing
         ];
         inputsFrom = [config.treefmt.build.devShell];
 
         withHoogle = true;
+        shellHook = ''
+          export PLECO_TEST_HYDRA_SCHEMA=${hydraSchema}
+        '';
 
         # We don't need cross platforms in the shell; should speed up evaluation
         crossPlatforms = _: [];
@@ -58,6 +68,22 @@
         {
           packages.openapi3.package.buildType = lib.mkForce "Simple";
           packages.servant-openapi3.package.buildType = lib.mkForce "Simple";
+        }
+
+        # Add the Hydra SQL schema as an environment variable
+        {
+          packages.hydra-pleco-server.components.tests.db-tests = {
+            build-tools = [
+              pkgs.postgresql
+              pkgs.postgresqlTestHook
+            ];
+
+            preCheck = ''
+              export PLECO_TEST_HYDRA_SCHEMA=${hydraSchema}
+              # Allow postgresql-test-hook to create databases
+              postgresqlTestUserOptions="LOGIN SUPERUSER"
+            '';
+          };
         }
       ];
     };
