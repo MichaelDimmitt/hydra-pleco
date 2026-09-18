@@ -1,0 +1,572 @@
+{
+    "components": {
+        "callbacks": {
+            "jobsetEvent": {
+                "{$request.body#/url}": {
+                    "post": {
+                        "description": "Posted to each registered url on Hydra jobset events.",
+                        "requestBody": {
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "$ref": "#/components/schemas/JobsetEvent"
+                                    }
+                                }
+                            },
+                            "required": true
+                        },
+                        "responses": {
+                            "200": {
+                                "description": ""
+                            }
+                        },
+                        "summary": "Hydra Jobset event notification"
+                    }
+                }
+            }
+        },
+        "schemas": {
+            "Eval": {
+                "properties": {
+                    "checkout_time": {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "type": "integer"
+                    },
+                    "eval_time": {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "type": "integer"
+                    },
+                    "flake": {
+                        "type": "string"
+                    },
+                    "has_new_builds": {
+                        "type": "boolean"
+                    },
+                    "hash": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "type": "integer"
+                    },
+                    "jobset_id": {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "type": "integer"
+                    },
+                    "num_builds": {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "type": "integer"
+                    },
+                    "num_succeeded": {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "type": "integer"
+                    },
+                    "timestamp": {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "id",
+                    "jobset_id",
+                    "timestamp",
+                    "checkout_time",
+                    "eval_time",
+                    "has_new_builds",
+                    "hash"
+                ],
+                "type": "object"
+            },
+            "EventType": {
+                "enum": [
+                    "eval_started",
+                    "eval_added",
+                    "eval_cached",
+                    "eval_failed",
+                    "build_queued",
+                    "cached_build_queued",
+                    "build_started",
+                    "build_finished",
+                    "cached_build_finished"
+                ],
+                "type": "string"
+            },
+            "Health": {
+                "properties": {
+                    "status": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "status"
+                ],
+                "type": "object"
+            },
+            "Jobset": {
+                "properties": {
+                    "check_interval": {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "type": "integer"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "email_override": {
+                        "type": "string"
+                    },
+                    "enable_dynamic_runcommand_hooks": {
+                        "type": "boolean"
+                    },
+                    "enable_email_notification": {
+                        "type": "boolean"
+                    },
+                    "error_msg": {
+                        "type": "string"
+                    },
+                    "error_time": {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "type": "integer"
+                    },
+                    "flake": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "type": "integer"
+                    },
+                    "keep_number_evaluations": {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "type": "integer"
+                    },
+                    "last_checked_time": {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "type": "integer"
+                    },
+                    "last_eval_time": {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "nix_expr_input": {
+                        "type": "string"
+                    },
+                    "nix_expr_path": {
+                        "type": "string"
+                    },
+                    "project": {
+                        "type": "string"
+                    },
+                    "scheduling_shares": {
+                        "maximum": 9223372036854775807,
+                        "minimum": -9223372036854775808,
+                        "type": "integer"
+                    },
+                    "state": {
+                        "$ref": "#/components/schemas/JobsetState"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/JobsetType"
+                    },
+                    "visible": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "name",
+                    "project",
+                    "id",
+                    "state",
+                    "visible",
+                    "type",
+                    "check_interval",
+                    "scheduling_shares",
+                    "enable_dynamic_runcommand_hooks",
+                    "enable_email_notification",
+                    "keep_number_evaluations"
+                ],
+                "type": "object"
+            },
+            "JobsetEvent": {
+                "properties": {
+                    "event_type": {
+                        "$ref": "#/components/schemas/EventType"
+                    },
+                    "jobset": {
+                        "type": "string"
+                    },
+                    "project": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "event_type",
+                    "project",
+                    "jobset"
+                ],
+                "type": "object"
+            },
+            "JobsetState": {
+                "enum": [
+                    "ENABLED",
+                    "DISABLED",
+                    "ONE_SHOT",
+                    "ONE_AT_A_TIME"
+                ],
+                "type": "string"
+            },
+            "JobsetType": {
+                "enum": [
+                    "FLAKE",
+                    "LEGACY"
+                ],
+                "type": "string"
+            },
+            "Project": {
+                "properties": {
+                    "declarative_input_type": {
+                        "type": "string"
+                    },
+                    "declarative_spec_file": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "display_name": {
+                        "type": "string"
+                    },
+                    "enable_dynamic_runcommand_hooks": {
+                        "type": "boolean"
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "homepage": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "owner": {
+                        "type": "string"
+                    },
+                    "visible": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "enabled",
+                    "visible",
+                    "display_name",
+                    "owner",
+                    "enable_dynamic_runcommand_hooks"
+                ],
+                "type": "object"
+            },
+            "Subscription": {
+                "properties": {
+                    "url": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "url"
+                ],
+                "type": "object"
+            }
+        }
+    },
+    "info": {
+        "title": "",
+        "version": ""
+    },
+    "openapi": "3.0.0",
+    "paths": {
+        "/health": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/health+json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Health"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/projects": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/Project"
+                                    },
+                                    "type": "array"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/projects/{project-id}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "project-id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Project"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "description": "`project-id` not found"
+                    }
+                }
+            }
+        },
+        "/projects/{project-id}/jobsets": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "project-id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/Jobset"
+                                    },
+                                    "type": "array"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "description": "`project-id` not found"
+                    }
+                }
+            }
+        },
+        "/projects/{project-id}/jobsets/{jobset-name}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "project-id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "path",
+                        "name": "jobset-name",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Jobset"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "description": "`project-id` or `jobset-name` not found"
+                    }
+                }
+            }
+        },
+        "/projects/{project-id}/jobsets/{jobset-name}/evals": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "project-id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "path",
+                        "name": "jobset-name",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/Eval"
+                                    },
+                                    "type": "array"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "description": "`project-id` or `jobset-name` not found"
+                    }
+                }
+            }
+        },
+        "/projects/{project-id}/jobsets/{jobset-name}/evals/{eval-id}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "project-id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "path",
+                        "name": "jobset-name",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "path",
+                        "name": "eval-id",
+                        "required": true,
+                        "schema": {
+                            "maximum": 9223372036854775807,
+                            "minimum": -9223372036854775808,
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Eval"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "description": "`project-id` or `jobset-name` or `eval-id` not found"
+                    }
+                }
+            }
+        },
+        "/webhooks": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/Subscription"
+                                    },
+                                    "type": "array"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "post": {
+                "callbacks": {
+                    "jobsetEvent": {
+                        "$ref": "#/components/callbacks/jobsetEvent"
+                    }
+                },
+                "requestBody": {
+                    "content": {
+                        "application/json;charset=utf-8": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Subscription"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Subscription"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "description": "Invalid `body`"
+                    }
+                }
+            }
+        }
+    }
+}

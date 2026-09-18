@@ -12,6 +12,8 @@ module Hydra.Pleco.Api.Gen
     jobsetType,
     eval,
     evalId,
+    title,
+    url,
   ) where
 
 import Hydra.Pleco.Api
@@ -27,7 +29,7 @@ import Hydra.Pleco.Api
     JobsetType (..),
     Project (..),
     ProjectId (..),
-    Subscription (..),
+    Subscription (Subscription),
   )
 
 import Hedgehog (Gen)
@@ -38,7 +40,7 @@ health :: Gen Health
 health = Health <$> Gen.element ["pass", "fail", "warn"]
 
 subscription :: Gen Subscription
-subscription = Subscription <$> genUrl
+subscription = Subscription <$> url
 
 jobsetEvent :: Gen JobsetEvent
 jobsetEvent = do
@@ -72,13 +74,13 @@ project = do
   name <- projectId
   enabled <- Gen.bool
   visible <- Gen.bool
-  displayName <- genTitle
-  description <- Gen.maybe genTitle
-  homepage <- Gen.maybe genUrl
-  owner <- genTitle
+  displayName <- title
+  description <- Gen.maybe title
+  homepage <- Gen.maybe url
+  owner <- title
   enableDynRunCmd <- Gen.bool
-  declSpecFile <- Gen.maybe (toString <$> genUrl)
-  declInputType <- Gen.maybe genTitle
+  declSpecFile <- Gen.maybe (toString <$> url)
+  declInputType <- Gen.maybe title
 
   pure
     Project
@@ -95,7 +97,7 @@ project = do
       }
 
 projectId :: Gen ProjectId
-projectId = ProjectId <$> genTitle
+projectId = ProjectId <$> title
 
 jobset :: Gen Jobset
 jobset = do
@@ -105,19 +107,19 @@ jobset = do
   state' <- jobsetState
   visible <- Gen.bool
   jsType <- jobsetType
-  flake <- Gen.maybe genUrl
-  nixExprInput <- Gen.maybe genUrl
-  nixExprPath <- Gen.maybe genTitle
-  description <- Gen.maybe genTitle
+  flake <- Gen.maybe url
+  nixExprInput <- Gen.maybe url
+  nixExprPath <- Gen.maybe title
+  description <- Gen.maybe title
   checkInterval <- Gen.int (Range.linear 0 maxBound)
   schedulingShares <- Gen.int (Range.linear 0 21)
   enableDynRunCmd <- Gen.bool
   enableEmail <- Gen.bool
-  emailOverride <- Gen.maybe genTitle
+  emailOverride <- Gen.maybe title
   keepNumEvals <- Gen.int (Range.linear 0 50)
   lastCheckedTime <- Gen.maybe $ Gen.int (Range.linear 0 maxBound)
   lastEvalTime <- Gen.maybe $ Gen.int (Range.linear 0 maxBound)
-  errorMsg <- Gen.maybe genTitle
+  errorMsg <- Gen.maybe title
   errorTime <- Gen.maybe $ Gen.int (Range.linear 0 maxBound)
 
   pure
@@ -152,10 +154,10 @@ eval = do
   checkoutTime <- Gen.int (Range.linear 0 maxBound)
   evalTime <- Gen.int (Range.linear 0 maxBound)
   hasNewBuilds <- Gen.bool
-  hash' <- genTitle
+  hash' <- title
   numBuilds <- Gen.maybe $ Gen.int (Range.linear 0 maxBound)
   numSucceeded <- Gen.maybe $ Gen.int (Range.linear 0 maxBound)
-  flake <- Gen.maybe genUrl
+  flake <- Gen.maybe url
 
   pure
     Eval
@@ -175,7 +177,7 @@ evalId :: Gen EvalId
 evalId = EvalId <$> Gen.int (Range.linear 0 maxBound)
 
 jobsetName :: Gen JobsetName
-jobsetName = JobsetName <$> genTitle
+jobsetName = JobsetName <$> title
 
 jobsetId :: Gen JobsetId
 jobsetId = JobsetId <$> Gen.int (Range.linear 0 maxBound)
@@ -186,11 +188,11 @@ jobsetState = Gen.element [JssEnabled, JssDisabled, JssOneShot, JssOneAtATime]
 jobsetType :: Gen JobsetType
 jobsetType = Gen.element [JstFlake, JstLegacy]
 
-genTitle :: Gen Text
-genTitle = Gen.text (Range.linear 0 255) Gen.unicode
+title :: Gen Text
+title = Gen.text (Range.linear 0 255) Gen.unicode
 
-genUrl :: Gen Text
-genUrl = Gen.text len chars
+url :: Gen Text
+url = Gen.text len chars
   where
     -- maximum length of URL is essentially 2048
     len = Range.linear 0 2048

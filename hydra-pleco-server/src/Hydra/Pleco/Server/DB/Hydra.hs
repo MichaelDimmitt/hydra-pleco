@@ -17,6 +17,7 @@ module Hydra.Pleco.Server.DB.Hydra
     jobsetEvalByProjectAndJobset,
     hydraNotifyChannels,
     parseHydraNotification,
+    renderHydraNotification,
   ) where
 
 import Hasql.Statement (Statement)
@@ -33,6 +34,7 @@ import Rel8
     (==.),
   )
 import Rel8 qualified
+import qualified Data.Text as Text
 
 data Project f = Project
   { prjName :: Column f Text,
@@ -276,3 +278,22 @@ parseHydraNotification channel payload =
     readEither' = first ServerParsingError . readEither . toString
 
     payload' = words payload
+
+renderHydraNotification :: Text -> HydraNotification -> (Text, Text)
+renderHydraNotification traceId' = \case
+  HydraEvalAdded jobsetId evalId ->
+    ("eval_added", mkPayload [renderJobsetId jobsetId, renderJobsetEvalId evalId])
+  HydraEvalStarted jobsetId ->
+    ("eval_started", mkPayload [renderJobsetId jobsetId])
+  HydraEvalCached jobsetId evalId ->
+    ("eval_cached", mkPayload [renderJobsetId jobsetId, renderJobsetEvalId evalId])
+  HydraEvalFailed jobsetId ->
+    ("eval_failed", mkPayload [renderJobsetId jobsetId])
+
+  where
+    mkPayload :: [Text] -> Text
+    mkPayload = Text.intercalate "\t" . (traceId':)
+
+    renderJobsetId = show . unJobsetId
+    renderJobsetEvalId = show . unJobsetEvalId
+

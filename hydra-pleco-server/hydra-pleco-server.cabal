@@ -99,6 +99,7 @@ library testlib
 
   build-depends:
     hedgehog,
+    hydra-pleco-api:testlib,
     hydra-pleco-server,
     rel8,
 
@@ -123,6 +124,7 @@ test-suite tests
   hs-source-dirs: test
   main-is: Main.hs
   other-modules:
+    Hydra.Pleco.Server.DB.HydraSpec
     Hydra.Pleco.Server.EvalSpec
     Hydra.Pleco.Server.ProjectSpec
     Hydra.Pleco.ServerSpec

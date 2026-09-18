@@ -1,5 +1,6 @@
 module Hydra.Pleco.ApiSpec (spec) where
 
+import Hydra.Pleco.Api (EventType (..))
 import Hydra.Pleco.Api.Gen qualified as Gen
 
 import Data.Aeson qualified as Aeson
@@ -16,6 +17,11 @@ spec = do
         health <- forAll Gen.health
         tripping health Aeson.encode Aeson.eitherDecode
 
+    it "toJSON and toEncoding matches" $
+      hedgehog $ do
+        health <- forAll Gen.health
+        Aeson.decode (Aeson.encode health) === Just (Aeson.toJSON health)
+
     it "conforms to its OpenApi schema" $
       hedgehog $ do
         health <- forAll Gen.health
@@ -26,6 +32,11 @@ spec = do
       hedgehog $ do
         sub <- forAll Gen.subscription
         tripping sub Aeson.encode Aeson.eitherDecode
+
+    it "toJSON and toEncoding matches" $
+      hedgehog $ do
+        sub <- forAll Gen.subscription
+        Aeson.decode (Aeson.encode sub) === Just (Aeson.toJSON sub)
 
     it "conforms to its OpenApi schema" $
       hedgehog $ do
@@ -38,12 +49,29 @@ spec = do
         ev <- forAll Gen.jobsetEvent
         tripping ev Aeson.encode Aeson.eitherDecode
 
+    it "toJSON and toEncoding matches" $
+      hedgehog $ do
+        ev <- forAll Gen.jobsetEvent
+        Aeson.decode (Aeson.encode ev) === Just (Aeson.toJSON ev)
+
     it "conforms to its OpenApi schema" $
       hedgehog $ do
         ev <- forAll Gen.jobsetEvent
         validateToJSON ev === []
 
   describe "EventType" $ do
+    let eventTypes =
+          [ (EvalStarted, "eval_started"),
+            (EvalAdded, "eval_added"),
+            (EvalCached, "eval_cached"),
+            (EvalFailed, "eval_failed"),
+            (BuildQueued, "build_queued"),
+            (CachedBuildQueued, "cached_build_queued"),
+            (BuildStarted, "build_started"),
+            (BuildFinished, "build_finished"),
+            (CachedBuildFinished, "cached_build_finished")
+          ]
+
     it "round-trips through Aeson" $
       hedgehog $ do
         ty <- forAll Gen.eventType
@@ -54,11 +82,24 @@ spec = do
         ty <- forAll Gen.eventType
         validateToJSON ty === []
 
+    it "encodes all as Hydra event names" $
+      for_ eventTypes $ \(ty, wire) -> do
+        Aeson.toJSON ty `shouldBe` Aeson.String wire
+        Aeson.eitherDecode (Aeson.encode wire) `shouldBe` Right ty
+
+    it "names every constructor" $
+      map fst eventTypes `shouldBe` universe
+
   describe "Project" $ do
     it "round-trips through Aeson" $
       hedgehog $ do
         prj <- forAll Gen.project
         tripping prj Aeson.encode Aeson.eitherDecode
+
+    it "toJSON and toEncoding matches" $
+      hedgehog $ do
+        prj <- forAll Gen.project
+        Aeson.decode (Aeson.encode prj) === Just (Aeson.toJSON prj)
 
     it "conforms to its OpenApi schema" $
       hedgehog $ do
@@ -81,6 +122,11 @@ spec = do
       hedgehog $ do
         jobset <- forAll Gen.jobset
         tripping jobset Aeson.encode Aeson.eitherDecode
+
+    it "toJSON and toEncoding matches" $
+      hedgehog $ do
+        jobset <- forAll Gen.jobset
+        Aeson.decode (Aeson.encode jobset) === Just (Aeson.toJSON jobset)
 
     it "conforms to its OpenApi schema" $
       hedgehog $ do
@@ -136,6 +182,11 @@ spec = do
       hedgehog $ do
         ev <- forAll Gen.eval
         tripping ev Aeson.encode Aeson.eitherDecode
+
+    it "toJSON and toEncoding matches" $
+      hedgehog $ do
+        ev <- forAll Gen.eval
+        Aeson.decode (Aeson.encode ev) === Just (Aeson.toJSON ev)
 
     it "conforms to its OpenApi schema" $
       hedgehog $ do

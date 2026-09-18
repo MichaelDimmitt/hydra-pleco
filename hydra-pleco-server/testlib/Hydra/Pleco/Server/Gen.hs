@@ -1,10 +1,13 @@
 module Hydra.Pleco.Server.Gen
   ( project,
     jobsetEval,
+    hydraNotification,
   ) where
 
+import Hydra.Pleco.Api.Gen qualified as ApiGen
 import Hydra.Pleco.Server.DB.Hydra
-  ( JobsetEval (..),
+  ( HydraNotification (..),
+    JobsetEval (..),
     JobsetEvalId (..),
     JobsetId (..),
     Project (..),
@@ -17,15 +20,15 @@ import Rel8 (Result)
 
 project :: Gen (Project Result)
 project = do
-  name <- genTitle
-  displayName <- genTitle
-  description <- Gen.maybe genTitle
+  name <- ApiGen.title
+  displayName <- ApiGen.title
+  description <- Gen.maybe ApiGen.title
   enabled <- Gen.bool
   hidden <- Gen.bool
-  owner <- genTitle
-  homepage <- Gen.maybe genUrl
-  declFile <- Gen.maybe genUrl
-  declType <- Gen.maybe genTitle
+  owner <- ApiGen.title
+  homepage <- Gen.maybe ApiGen.url
+  declFile <- Gen.maybe ApiGen.url
+  declType <- Gen.maybe ApiGen.title
   enableDynCmd <- Gen.bool
 
   pure
@@ -44,22 +47,22 @@ project = do
 
 jobsetEval :: Gen (JobsetEval Result)
 jobsetEval = do
-  id' <- JobsetEvalId <$> genId
-  jobsetId <- JobsetId <$> genId
+  id' <- jobsetEvalId
+  jobsetId' <- jobsetId
   timestamp <- genId
   checkoutTime <- genId
   evalTime <- genId
   -- Hydra stores hasnewbuilds as a 0/1 flag
   hasNewBuilds <- Gen.element [0, 1]
-  hash' <- genTitle
+  hash' <- ApiGen.title
   numBuilds <- Gen.maybe genId
   numSucceeded <- Gen.maybe genId
-  flake <- Gen.maybe genUrl
+  flake <- Gen.maybe ApiGen.url
 
   pure
     JobsetEval
       { jseId = id',
-        jseJobsetId = jobsetId,
+        jseJobsetId = jobsetId',
         jseTimestamp = timestamp,
         jseCheckoutTime = checkoutTime,
         jseEvalTime = evalTime,
@@ -70,16 +73,20 @@ jobsetEval = do
         jseFlake = flake
       }
 
+hydraNotification :: Gen HydraNotification
+hydraNotification =
+  Gen.choice
+    [ HydraEvalAdded <$> jobsetId <*> jobsetEvalId,
+      HydraEvalStarted <$> jobsetId,
+      HydraEvalCached <$> jobsetId <*> jobsetEvalId,
+      HydraEvalFailed <$> jobsetId
+    ]
+
+jobsetId :: Gen JobsetId
+jobsetId = JobsetId <$> genId
+
+jobsetEvalId :: Gen JobsetEvalId
+jobsetEvalId = JobsetEvalId <$> genId
+
 genId :: Gen Int64
 genId = Gen.int64 (Range.linear 0 maxBound)
-
-genTitle :: Gen Text
-genTitle = Gen.text (Range.linear 0 255) Gen.unicode
-
-genUrl :: Gen Text
-genUrl = Gen.text len chars
-  where
-    -- maximum length of URL is essentially 2048
-    len = Range.linear 0 2048
-    -- latin1 should cover any URL-encoded string
-    chars = Gen.latin1

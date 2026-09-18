@@ -27,6 +27,9 @@ cabal.project.local
 # Stack
 .stack-work/
 stack.yaml.lock
+# hspec-golden writes `.golden/PATH/action` on every run. To accept it, copy it to
+# `.golden/PATH/golden`
+**/.golden/**/actual
 
 ### IDE/support
 # Vim
@@ -60,3 +63,4 @@ result-*
 
 # other
 .DS_Store
+
