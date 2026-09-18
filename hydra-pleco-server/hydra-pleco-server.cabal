@@ -96,12 +96,17 @@ library testlib
   visibility: public
   exposed-modules:
     Hydra.Pleco.Server.Gen
+    Hydra.Pleco.Server.TestApp
 
   build-depends:
+    hasql-pool,
     hedgehog,
+    http-client,
     hydra-pleco-api:testlib,
     hydra-pleco-server,
+    katip,
     rel8,
+    warp,
 
 executable hydra-pleco
   import: common-options
@@ -133,9 +138,14 @@ test-suite tests
     hedgehog,
     hspec,
     hspec-hedgehog,
+    http-client,
+    http-types,
     hydra-pleco-api:testlib,
+    hydra-pleco-cli,
     hydra-pleco-server,
     hydra-pleco-server:testlib,
+    servant-client,
+    warp,
 
   ghc-options:
     -threaded

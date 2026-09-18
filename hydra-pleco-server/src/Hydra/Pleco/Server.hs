@@ -4,6 +4,7 @@ module Hydra.Pleco.Server
     runPlecoServerT,
     mkPlecoServerEnv,
     runServer,
+    app,
   ) where
 
 import Hydra.Pleco.Api (Health (..), HydraApi (..), HydraApp (..))
