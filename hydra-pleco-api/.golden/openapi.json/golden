@@ -298,6 +298,37 @@
     },
     "openapi": "3.0.0",
     "paths": {
+        "/evals/{id}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "maximum": 9223372036854775807,
+                            "minimum": -9223372036854775808,
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Eval"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "description": "`id` not found"
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "responses": {
@@ -310,6 +341,71 @@
                             }
                         },
                         "description": ""
+                    }
+                }
+            }
+        },
+        "/jobsets/{id}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "maximum": 9223372036854775807,
+                            "minimum": -9223372036854775808,
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Jobset"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "description": "`id` not found"
+                    }
+                }
+            }
+        },
+        "/jobsets/{id}/evals": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "maximum": 9223372036854775807,
+                            "minimum": -9223372036854775808,
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json;charset=utf-8": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/Eval"
+                                    },
+                                    "type": "array"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "description": "`id` not found"
                     }
                 }
             }
@@ -333,12 +429,12 @@
                 }
             }
         },
-        "/projects/{project-id}": {
+        "/projects/{id}": {
             "get": {
                 "parameters": [
                     {
                         "in": "path",
-                        "name": "project-id",
+                        "name": "id",
                         "required": true,
                         "schema": {
                             "type": "string"
@@ -357,17 +453,17 @@
                         "description": ""
                     },
                     "404": {
-                        "description": "`project-id` not found"
+                        "description": "`id` not found"
                     }
                 }
             }
         },
-        "/projects/{project-id}/jobsets": {
+        "/projects/{id}/jobsets": {
             "get": {
                 "parameters": [
                     {
                         "in": "path",
-                        "name": "project-id",
+                        "name": "id",
                         "required": true,
                         "schema": {
                             "type": "string"
@@ -389,131 +485,7 @@
                         "description": ""
                     },
                     "404": {
-                        "description": "`project-id` not found"
-                    }
-                }
-            }
-        },
-        "/projects/{project-id}/jobsets/{jobset-name}": {
-            "get": {
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "project-id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "in": "path",
-                        "name": "jobset-name",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json;charset=utf-8": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Jobset"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "404": {
-                        "description": "`project-id` or `jobset-name` not found"
-                    }
-                }
-            }
-        },
-        "/projects/{project-id}/jobsets/{jobset-name}/evals": {
-            "get": {
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "project-id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "in": "path",
-                        "name": "jobset-name",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json;charset=utf-8": {
-                                "schema": {
-                                    "items": {
-                                        "$ref": "#/components/schemas/Eval"
-                                    },
-                                    "type": "array"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "404": {
-                        "description": "`project-id` or `jobset-name` not found"
-                    }
-                }
-            }
-        },
-        "/projects/{project-id}/jobsets/{jobset-name}/evals/{eval-id}": {
-            "get": {
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "project-id",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "in": "path",
-                        "name": "jobset-name",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "in": "path",
-                        "name": "eval-id",
-                        "required": true,
-                        "schema": {
-                            "maximum": 9223372036854775807,
-                            "minimum": -9223372036854775808,
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json;charset=utf-8": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/Eval"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "404": {
-                        "description": "`project-id` or `jobset-name` or `eval-id` not found"
+                        "description": "`id` not found"
                     }
                 }
             }

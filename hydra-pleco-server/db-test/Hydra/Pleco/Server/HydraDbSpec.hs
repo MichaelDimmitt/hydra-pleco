@@ -1,6 +1,6 @@
 module Hydra.Pleco.Server.HydraDbSpec (spec) where
 
-import Hydra.Pleco.Server.DB (runSession, statement)
+import Hydra.Pleco.Server.DB (runSession, statement, jobsetEvalById, jobsetEvalsByJobset)
 import Hydra.Pleco.Server.DB.Hydra
   ( Jobset (..),
     JobsetEval (..),
@@ -9,9 +9,6 @@ import Hydra.Pleco.Server.DB.Hydra
     Project (..),
     eachProject,
     jobsetById,
-    jobsetByProjectAndName,
-    jobsetEvalByProjectAndJobset,
-    jobsetEvalsByProjectAndJobset,
     jobsetsByProject,
     projectByName,
   )
@@ -91,19 +88,9 @@ spec = describe "Hydra.Pleco.Server.DB.Hydra" $ do
       jobsets <- runStatement pool (jobsetsByProject "pleco")
       map jsName jobsets `shouldMatchList` ["main", "staging"]
 
-  describe "jobsetByProjectAndName" $
-    it "selects expected jobset" $ \(_, pool) -> do
-      js <- runStatement pool (jobsetByProjectAndName "pleco" "staging")
-      jsId js `shouldBe` JobsetId 2
-
-  describe "jobsetEvalsByProjectAndJobset" $
-    it "selects expected evals" $ \(_, pool) -> do
-      evals <- runStatement pool (jobsetEvalsByProjectAndJobset "pleco" "main")
-      map jseId evals `shouldMatchList` [JobsetEvalId 1, JobsetEvalId 2]
-
-  describe "jobsetEvalByProjectAndJobset" $
+  describe "jobsetEvalById" $
     it "decodes the scalar columns" $ \(_, pool) -> do
-      eval <- runStatement pool (jobsetEvalByProjectAndJobset "pleco" "main" (JobsetEvalId 1))
+      eval <- runStatement pool $ jobsetEvalById (JobsetEvalId 1)
       eval
         `shouldBe` JobsetEval
           { jseId = JobsetEvalId 1,
@@ -117,6 +104,11 @@ spec = describe "Hydra.Pleco.Server.DB.Hydra" $ do
             jseNumSucceeded = Just 5,
             jseFlake = Just "github:sgillespie/hydra-pleco"
           }
+
+  describe "jobsetEvalsByJobset" $
+    it "selects expected evals" $ \(_, pool) -> do
+      evals <- runStatement pool $ jobsetEvalsByJobset (JobsetId 1)
+      map jseId evals `shouldMatchList` [JobsetEvalId 1, JobsetEvalId 2]
 
 runStatement :: Pool -> Statement () a -> IO a
 runStatement pool stmt = runSession pool (statement () stmt)

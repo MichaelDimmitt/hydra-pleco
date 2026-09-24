@@ -62,76 +62,83 @@ import Data.OpenApi
 import Data.OpenApi qualified as OpenApi
 import Data.OpenApi.Declare (execDeclare)
 import Network.HTTP.Media ((//))
-import Optics (At (..), (%), (%~), (?~))
+import Optics (At (..), (%), (%~), (.~), (?~))
 import Optics.Extra (_Just)
 import Servant.API
 import Servant.OpenApi (HasOpenApi (..))
 import Servant.Swagger.UI (SwaggerSchemaUI)
 
--- TODO[sgillespie]: prefix fields to prevent naming conflicts
-
 -- | Documented API routes. OpenApi spec is generated from this.
 data HydraApi mode = HydraApi
-  { health :: mode :- "health" :> Get '[HealthJSON] Health,
-    webhooks :: mode :- "webhooks" :> NamedRoutes WebhooksApi,
-    projects :: mode :- "projects" :> NamedRoutes ProjectsApi
+  { apiHealth :: mode :- "health" :> Get '[HealthJSON] Health,
+    apiWebhooks :: mode :- "webhooks" :> NamedRoutes WebhooksApi,
+    apiProjects :: mode :- "projects" :> NamedRoutes ProjectsApi,
+    apiJobsets :: mode :- "jobsets" :> NamedRoutes JobsetsApi,
+    apiEvals :: mode :- "evals" :> NamedRoutes EvalsApi
   }
   deriving stock (Generic)
 
 data WebhooksApi mode = WebhooksApi
-  { subscribe :: mode :- ReqBody '[JSON] Subscription :> PostCreated '[JSON] Subscription,
-    list :: mode :- Get '[JSON] [Subscription]
+  { whaSubscribe :: mode :- ReqBody '[JSON] Subscription :> PostCreated '[JSON] Subscription,
+    whaList :: mode :- Get '[JSON] [Subscription]
   }
   deriving stock (Generic)
 
 data ProjectsApi mode = ProjectsApi
-  { listProjects :: mode :- Get '[JSON] [Project],
-    getProject :: mode :- Capture "project-id" ProjectId :> Get '[JSON] Project,
-    jobsets :: mode :- Capture "project-id" ProjectId :> "jobsets" :> NamedRoutes JobsetsApi
+  { prjaList :: mode :- Get '[JSON] [Project],
+    prjaGet :: mode :- Capture "id" ProjectId :> Get '[JSON] Project,
+    prjaJobsets :: mode :- Capture "id" ProjectId :> "jobsets" :> Get '[JSON] [Jobset]
   }
   deriving stock (Generic)
 
 data JobsetsApi mode = JobsetsApi
-  { getJobset :: mode :- Capture "jobset-name" JobsetName :> Get '[JSON] Jobset,
-    listJobsets :: mode :- Get '[JSON] [Jobset],
-    evals :: mode :- Capture "jobset-name" JobsetName :> "evals" :> NamedRoutes EvalsApi
+  { jsaGet :: mode :- Capture "id" JobsetId :> Get '[JSON] Jobset,
+    jsaEvals :: mode :- Capture "id" JobsetId :> "evals" :> Get '[JSON] [Eval]
   }
   deriving stock (Generic)
 
-data EvalsApi mode = EvalsApi
-  { listEvals :: mode :- Get '[JSON] [Eval],
-    getEval :: mode :- Capture "eval-id" EvalId :> Get '[JSON] Eval
+newtype EvalsApi mode = EvalsApi
+  { evaGet :: mode :- Capture "id" EvalId :> Get '[JSON] Eval
   }
   deriving stock (Generic)
 
 -- | The full Rest API application: the documented routes plus the Swagger UI.
 data HydraApp mode = HydraApp
-  { api :: mode :- NamedRoutes HydraApi,
-    docs :: mode :- SwaggerSchemaUI "swagger-ui" "swagger.json"
+  { appApi :: mode :- NamedRoutes HydraApi,
+    appDocs :: mode :- SwaggerSchemaUI "swagger-ui" "swagger.json"
   }
   deriving stock (Generic)
 
 newtype Health = Health
-  {status :: Text}
+  {hlStatus :: Text}
   deriving stock (Eq, Show, Generic)
-  deriving anyclass (ToSchema)
 
 data HealthJSON
 
 newtype Subscription = Subscription
-  {url :: Text}
+  {subUrl :: Text}
   deriving stock (Eq, Show, Generic)
-  deriving anyclass (ToSchema)
+
+instance ToSchema Health where
+  declareNamedSchema _ = do
+    let properties = InsOrd.fromList [("status", OpenApi.toSchemaRef @Text Proxy)]
+
+    pure $
+      OpenApi.NamedSchema (Just "Health") $
+        mempty
+          & #properties .~ properties
+          & #required .~ ["status"]
+          & #type ?~ OpenApi.OpenApiObject
 
 instance ToJSON Health where
-  toJSON Health {..} =
+  toJSON Health {hlStatus} =
     Aeson.object
-      [ "status" .= status
+      [ "status" .= hlStatus
       ]
 
-  toEncoding Health {..} =
+  toEncoding Health {hlStatus} =
     Aeson.pairs $
-      "status" .= status
+      "status" .= hlStatus
 
 instance FromJSON Health where
   parseJSON = Aeson.withObject "Health" $ \val ->
@@ -147,9 +154,20 @@ instance (ToJSON json) => MimeRender HealthJSON json where
 instance (FromJSON json) => MimeUnrender HealthJSON json where
   mimeUnrender _ = Aeson.eitherDecode
 
+instance ToSchema Subscription where
+  declareNamedSchema _ = do
+    let properties = InsOrd.fromList [("url", OpenApi.toSchemaRef @Text Proxy)]
+
+    pure $
+      OpenApi.NamedSchema (Just "Subscription") $
+        mempty
+          & #properties .~ properties
+          & #required .~ ["url"]
+          & #type ?~ OpenApi.OpenApiObject
+
 instance ToJSON Subscription where
-  toJSON Subscription {url} = Aeson.object ["url" .= url]
-  toEncoding Subscription {url} = Aeson.pairs $ "url" .= url
+  toJSON Subscription {subUrl} = Aeson.object ["url" .= subUrl]
+  toEncoding Subscription {subUrl} = Aeson.pairs $ "url" .= subUrl
 
 instance FromJSON Subscription where
   parseJSON = Aeson.withObject "Subscription" $ \val ->

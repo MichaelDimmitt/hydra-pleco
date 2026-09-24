@@ -51,7 +51,7 @@ import Control.Exception (throwIO)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.Encode.Pretty qualified as Aeson
 import Network.HTTP.Client (defaultManagerSettings, newManager)
-import Servant.Client (AsClientT, BaseUrl, ClientEnv, ClientError, ClientM, (//), (/:))
+import Servant.Client (AsClientT, BaseUrl, ClientEnv, ClientError, ClientM, (//))
 import Servant.Client qualified as Servant
 import Servant.Client.Generic (genericClientHoist)
 
@@ -90,46 +90,22 @@ hoistClientM :: ClientM a -> PlecoClient a
 hoistClientM = PlecoClient . lift
 
 getHealth :: PlecoClient Health
-getHealth = plecoClient // Api.health
+getHealth = plecoClient // Api.apiHealth
 
 listProjects :: PlecoClient [Project]
-listProjects = plecoClient // Api.projects // Api.listProjects
+listProjects = plecoClient // Api.apiProjects // Api.prjaList
 
 getProject :: ProjectId -> PlecoClient Project
-getProject = plecoClient // Api.projects // Api.getProject
+getProject = plecoClient // Api.apiProjects // Api.prjaGet
 
 listJobsets :: ProjectId -> PlecoClient [Jobset]
-listJobsets projectId =
-  plecoClient
-    // Api.projects
-    // Api.jobsets
-    /: projectId
-    // Api.listJobsets
+listJobsets = plecoClient // Api.apiProjects // Api.prjaJobsets
 
-getJobset :: ProjectId -> Api.JobsetName -> PlecoClient Jobset
-getJobset projectId =
-  plecoClient
-    // Api.projects
-    // Api.jobsets
-    /: projectId
-    // Api.getJobset
+getJobset :: Api.JobsetId -> PlecoClient Jobset
+getJobset = plecoClient // Api.apiJobsets // Api.jsaGet
 
-listEvals :: ProjectId -> Api.JobsetName -> PlecoClient [Eval]
-listEvals projectId jobsetName =
-  plecoClient
-    // Api.projects
-    // Api.jobsets
-    /: projectId
-    // Api.evals
-    /: jobsetName
-    // Api.listEvals
+listEvals :: Api.JobsetId -> PlecoClient [Eval]
+listEvals = plecoClient // Api.apiJobsets // Api.jsaEvals
 
-getEval :: ProjectId -> Api.JobsetName -> Api.EvalId -> PlecoClient Eval
-getEval projectId jobsetName =
-  plecoClient
-    // Api.projects
-    // Api.jobsets
-    /: projectId
-    // Api.evals
-    /: jobsetName
-    // Api.getEval
+getEval :: Api.EvalId -> PlecoClient Eval
+getEval = plecoClient // Api.apiEvals // Api.evaGet

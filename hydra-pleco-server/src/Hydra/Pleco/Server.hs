@@ -31,6 +31,8 @@ import Servant.Swagger.UI (swaggerSchemaUIServerT)
 import System.Clock (TimeSpec, toNanoSecs)
 import UnliftIO (MonadUnliftIO (..), bracket_)
 import UnliftIO.Async qualified as Async
+import Hydra.Pleco.Server.Evals (evalsHandler)
+import Hydra.Pleco.Server.Jobsets (jobsetsHandler)
 
 runServer :: Port -> PlecoServerEnv -> IO ()
 runServer port env = runPlecoServerT env $ do
@@ -119,16 +121,18 @@ loggingMiddleware = KatipWai.middlewareCustom logOpts
 server :: ServerT (NamedRoutes HydraApp) (PlecoServerT Handler)
 server =
   HydraApp
-    { api = apiServer,
-      docs = swaggerSchemaUIServerT Api.hydraOpenApi
+    { appApi = apiServer,
+      appDocs = swaggerSchemaUIServerT Api.hydraOpenApi
     }
 
 apiServer :: ServerT (NamedRoutes HydraApi) (PlecoServerT Handler)
 apiServer =
   HydraApi
-    { health = healthHandler,
-      webhooks = webhooksHandler,
-      projects = projectsHandler
+    { apiHealth = healthHandler,
+      apiWebhooks = webhooksHandler,
+      apiProjects = projectsHandler,
+      apiJobsets = jobsetsHandler,
+      apiEvals = evalsHandler
     }
 
 healthHandler :: PlecoServerT Handler Health

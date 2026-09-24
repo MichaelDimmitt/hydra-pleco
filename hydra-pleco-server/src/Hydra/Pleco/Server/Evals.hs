@@ -1,46 +1,38 @@
 module Hydra.Pleco.Server.Evals
   ( evalsHandler,
+    listEvalsHandler,
   ) where
 
-import Hydra.Pleco.Api (Eval (..), EvalId (..), EvalsApi (..), JobsetName (..), ProjectId (..))
+import Hydra.Pleco.Api (Eval (..), EvalId (..), EvalsApi (..), JobsetId (..))
+import Hydra.Pleco.Server.DB qualified as DB
+import Hydra.Pleco.Server.Evals.DB (fromEval)
 import Hydra.Pleco.Server.Monad (PlecoServerEnv (..), PlecoServerT)
 
-import Hydra.Pleco.Server.DB
-  ( JobsetEvalId (..),
-    jobsetEvalByProjectAndJobset,
-    jobsetEvalsByProjectAndJobset,
-    runSession,
-    statement,
-  )
-import Hydra.Pleco.Server.Evals.DB (fromEval)
 import Servant (Handler, NamedRoutes, ServerT)
 
-evalsHandler
-  :: ProjectId
-  -> JobsetName
-  -> ServerT (NamedRoutes EvalsApi) (PlecoServerT Handler)
-evalsHandler projectId jobsetName =
+evalsHandler :: ServerT (NamedRoutes EvalsApi) (PlecoServerT Handler)
+evalsHandler =
   EvalsApi
-    { listEvals = listEvalsHandler projectId jobsetName,
-      getEval = getEvalHandler projectId jobsetName
+    { evaGet = getEvalHandler
     }
 
-listEvalsHandler :: ProjectId -> JobsetName -> PlecoServerT Handler [Eval]
-listEvalsHandler (ProjectId prjName) (JobsetName jobsetName) = do
+listEvalsHandler :: JobsetId -> PlecoServerT Handler [Eval]
+listEvalsHandler (JobsetId jobsetId) = do
   pool <- asks pseDbPool
   evals <-
-    runSession pool $
-      statement () (jobsetEvalsByProjectAndJobset prjName jobsetName)
+    DB.runSession pool $
+      DB.statement () $
+        DB.jobsetEvalsByJobset (DB.JobsetId $ fromIntegral jobsetId)
 
   pure $ map fromEval evals
 
-getEvalHandler :: ProjectId -> JobsetName -> EvalId -> PlecoServerT Handler Eval
-getEvalHandler (ProjectId prjName) (JobsetName jobsetName) (EvalId evalId) = do
+getEvalHandler :: EvalId -> PlecoServerT Handler Eval
+getEvalHandler (EvalId evalId) = do
   pool <- asks pseDbPool
   eval <-
-    runSession pool $
-      statement () (jobsetEvalByProjectAndJobset prjName jobsetName evalId')
+    DB.runSession pool $
+      DB.statement () (DB.jobsetEvalById evalId')
 
   pure $ fromEval eval
   where
-    evalId' = JobsetEvalId (fromIntegral evalId)
+    evalId' = DB.JobsetEvalId (fromIntegral evalId)

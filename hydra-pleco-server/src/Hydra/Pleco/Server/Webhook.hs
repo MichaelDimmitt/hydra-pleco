@@ -26,8 +26,8 @@ import UnliftIO.Exception qualified as Exception
 webhooksHandler :: ServerT (NamedRoutes WebhooksApi) (PlecoServerT Handler)
 webhooksHandler =
   WebhooksApi
-    { subscribe = webhooksSubscribeHandler,
-      list = webhooksListHandler
+    { whaSubscribe = webhooksSubscribeHandler,
+      whaList = webhooksListHandler
     }
 
 webhooksSubscribeHandler :: Subscription -> PlecoServerT Handler Subscription

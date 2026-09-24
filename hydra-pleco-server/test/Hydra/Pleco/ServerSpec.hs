@@ -96,7 +96,7 @@ subscription :: Subscription
 subscription = Subscription "http://localhost:9999/"
 
 subscribe :: Subscription -> PlecoClient Subscription
-subscribe = plecoClient // Api.webhooks // Api.subscribe
+subscribe = plecoClient // Api.apiWebhooks // Api.whaSubscribe
 
 runRequest :: Port -> String -> IO (Response LByteString)
 runRequest port path = withRequest port path id
@@ -108,4 +108,4 @@ withRequest port path f = do
   httpLbs (f req) manager
 
 listSubscriptions :: PlecoClient [Subscription]
-listSubscriptions = plecoClient // Api.webhooks // Api.list
+listSubscriptions = plecoClient // Api.apiWebhooks // Api.whaList

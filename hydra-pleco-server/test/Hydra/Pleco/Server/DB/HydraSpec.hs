@@ -14,54 +14,55 @@ import Test.Hspec
 import Test.Hspec.Hedgehog (hedgehog, tripping)
 
 spec :: Spec
-spec = describe "parseHydraNotification" $ do
-  it "round-trips a rendered notification" $
-    hedgehog $ do
-      notification <- forAll Gen.hydraNotification
-      tripping
-        notification
-        (renderHydraNotification hydraTraceId)
-        (uncurry parseHydraNotification)
+spec = describe "Hydra.Pleco.Server.DB.Hydra" $ do
+  describe "parseHydraNotification" $ do
+    it "round-trips a rendered notification" $
+      hedgehog $ do
+        notification <- forAll Gen.hydraNotification
+        tripping
+          notification
+          (renderHydraNotification hydraTraceId)
+          (uncurry parseHydraNotification)
 
-  describe "eval_added" $ do
-    it "parses a well-formed payload" $
-      parseHydraNotification "eval_added" (hydraTraceId <> "\t123\t456")
-        `shouldBe` Right (HydraEvalAdded (JobsetId 123) (JobsetEvalId 456))
+    describe "eval_added" $ do
+      it "parses a well-formed payload" $
+        parseHydraNotification "eval_added" (hydraTraceId <> "\t123\t456")
+          `shouldBe` Right (HydraEvalAdded (JobsetId 123) (JobsetEvalId 456))
 
-    it "rejects malformed payloads" $
-      for_ badThreeFieldPayloads $ \payload ->
-        parseHydraNotification "eval_added" payload `shouldSatisfy` isLeft
+      it "rejects malformed payloads" $
+        for_ badThreeFieldPayloads $ \payload ->
+          parseHydraNotification "eval_added" payload `shouldSatisfy` isLeft
 
-  describe "eval_cached" $ do
-    it "parses a well-formed payload" $
-      parseHydraNotification "eval_cached" (hydraTraceId <> "\t123\t456")
-        `shouldBe` Right (HydraEvalCached (JobsetId 123) (JobsetEvalId 456))
+    describe "eval_cached" $ do
+      it "parses a well-formed payload" $
+        parseHydraNotification "eval_cached" (hydraTraceId <> "\t123\t456")
+          `shouldBe` Right (HydraEvalCached (JobsetId 123) (JobsetEvalId 456))
 
-    it "rejects malformed payloads" $
-      for_ badThreeFieldPayloads $ \payload ->
-        parseHydraNotification "eval_cached" payload `shouldSatisfy` isLeft
+      it "rejects malformed payloads" $
+        for_ badThreeFieldPayloads $ \payload ->
+          parseHydraNotification "eval_cached" payload `shouldSatisfy` isLeft
 
-  describe "eval_started" $ do
-    it "parses a well-formed payload" $
-      parseHydraNotification "eval_started" (hydraTraceId <> "\t123")
-        `shouldBe` Right (HydraEvalStarted (JobsetId 123))
+    describe "eval_started" $ do
+      it "parses a well-formed payload" $
+        parseHydraNotification "eval_started" (hydraTraceId <> "\t123")
+          `shouldBe` Right (HydraEvalStarted (JobsetId 123))
 
-    it "rejects malformed payloads" $
-      for_ badTwoFieldPayloads $ \payload ->
-        parseHydraNotification "eval_started" payload `shouldSatisfy` isLeft
+      it "rejects malformed payloads" $
+        for_ badTwoFieldPayloads $ \payload ->
+          parseHydraNotification "eval_started" payload `shouldSatisfy` isLeft
 
-  describe "eval_failed" $ do
-    it "parses a well-formed payload" $
-      parseHydraNotification "eval_failed" (hydraTraceId <> "\t123")
-        `shouldBe` Right (HydraEvalFailed (JobsetId 123))
+    describe "eval_failed" $ do
+      it "parses a well-formed payload" $
+        parseHydraNotification "eval_failed" (hydraTraceId <> "\t123")
+          `shouldBe` Right (HydraEvalFailed (JobsetId 123))
 
-    it "rejects malformed payloads" $
-      for_ badTwoFieldPayloads $ \payload ->
-        parseHydraNotification "eval_failed" payload `shouldSatisfy` isLeft
+      it "rejects malformed payloads" $
+        for_ badTwoFieldPayloads $ \payload ->
+          parseHydraNotification "eval_failed" payload `shouldSatisfy` isLeft
 
-  it "rejects unknown channels" $
-    parseHydraNotification "build_started" (hydraTraceId <> "\t123")
-      `shouldSatisfy` isLeft
+    it "rejects unknown channels" $
+      parseHydraNotification "build_started" (hydraTraceId <> "\t123")
+        `shouldSatisfy` isLeft
 
 -- | Hydra sends a UUID.
 hydraTraceId :: Text

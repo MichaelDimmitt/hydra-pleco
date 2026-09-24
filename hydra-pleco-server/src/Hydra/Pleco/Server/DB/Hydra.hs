@@ -12,9 +12,8 @@ module Hydra.Pleco.Server.DB.Hydra
     projectByName,
     jobsetById,
     jobsetsByProject,
-    jobsetByProjectAndName,
-    jobsetEvalsByProjectAndJobset,
-    jobsetEvalByProjectAndJobset,
+    jobsetEvalById,
+    jobsetEvalsByJobset,
     hydraNotifyChannels,
     parseHydraNotification,
     renderHydraNotification,
@@ -31,7 +30,6 @@ import Rel8
     Rel8able,
     Result,
     TableSchema,
-    (&&.),
     (==.),
   )
 import Rel8 qualified
@@ -179,11 +177,12 @@ data HydraNotification
   deriving stock (Eq, Show)
 
 newtype JobsetId = JobsetId {unJobsetId :: Int64}
-  deriving newtype (DBEq, DBType, Eq, Read, Show)
+  deriving stock (Eq, Read, Show)
+  deriving newtype (DBEq, DBType)
 
 newtype JobsetEvalId = JobsetEvalId {unJobsetEvalId :: Int64}
-  deriving stock (Eq, Show)
-  deriving newtype (DBEq, DBType, Read)
+  deriving stock (Eq, Read, Show)
+  deriving newtype (DBEq, DBType)
 
 eachProject :: Statement () [Project Result]
 eachProject = Rel8.run $ Rel8.select (Rel8.each projectSchema)
@@ -212,45 +211,21 @@ jobsetsByProject projectName =
       Rel8.where_ $ jsProject jobsets ==. Rel8.lit projectName
       pure jobsets
 
-jobsetByProjectAndName :: Text -> Text -> Statement () (Jobset Result)
-jobsetByProjectAndName projectName jobsetName =
+jobsetEvalById :: JobsetEvalId -> Statement () (JobsetEval Result)
+jobsetEvalById evalId =
   Rel8.run1 $
     Rel8.select $ do
-      jobsets <- Rel8.each jobsetSchema
-      Rel8.where_ $
-        jsProject jobsets ==. Rel8.lit projectName
-          &&. jsName jobsets ==. Rel8.lit jobsetName
-
-      pure jobsets
-
-jobsetEvalsByProjectAndJobset :: Text -> Text -> Statement () [JobsetEval Result]
-jobsetEvalsByProjectAndJobset projectName jobsetName =
-  Rel8.run $
-    Rel8.select $ do
       evals <- Rel8.each jobsetEvalSchema
-      jobsets <- Rel8.each jobsetSchema
-      Rel8.where_ $
-        jseJobsetId evals ==. jsId jobsets
-          &&. jsProject jobsets ==. Rel8.lit projectName
-          &&. jsName jobsets ==. Rel8.lit jobsetName
+      Rel8.where_ $ jseId evals ==. Rel8.lit evalId
 
       pure evals
 
-jobsetEvalByProjectAndJobset
-  :: Text
-  -> Text
-  -> JobsetEvalId
-  -> Statement () (JobsetEval Result)
-jobsetEvalByProjectAndJobset projectName jobsetName evalId =
-  Rel8.run1 $
+jobsetEvalsByJobset :: JobsetId -> Statement () [JobsetEval Result]
+jobsetEvalsByJobset jobsetId =
+  Rel8.run $
     Rel8.select $ do
       evals <- Rel8.each jobsetEvalSchema
-      jobsets <- Rel8.each jobsetSchema
-      Rel8.where_ $
-        jseId evals ==. Rel8.lit evalId
-          &&. jseJobsetId evals ==. jsId jobsets
-          &&. jsProject jobsets ==. Rel8.lit projectName
-          &&. jsName jobsets ==. Rel8.lit jobsetName
+      Rel8.where_ $ jseJobsetId evals ==. Rel8.lit jobsetId
 
       pure evals
 
@@ -266,18 +241,24 @@ parseHydraNotification :: Text -> Text -> Either PlecoServerError HydraNotificat
 parseHydraNotification channel payload =
   case (channel, payload') of
     ("eval_added", [_, jobsetId, evalId]) ->
-      HydraEvalAdded <$> readEither' jobsetId <*> readEither' evalId
+      HydraEvalAdded <$> readJobsetId' jobsetId <*> readEvalId' evalId
     ("eval_started", [_, jobsetId]) ->
-      HydraEvalStarted <$> readEither' jobsetId
+      HydraEvalStarted <$> readJobsetId' jobsetId
     ("eval_cached", [_, jobsetId, evalId]) ->
-      HydraEvalCached <$> readEither' jobsetId <*> readEither' evalId
+      HydraEvalCached <$> readJobsetId' jobsetId <*> readEvalId' evalId
     ("eval_failed", [_, jobsetId]) ->
-      HydraEvalFailed <$> readEither' jobsetId
+      HydraEvalFailed <$> readJobsetId' jobsetId
     _ ->
       Left . ServerParsingError $
         "Cannot parse event '" <> channel <> "' with payload: " <> payload
   where
-    readEither' :: (Read a, ToString s) => s -> Either PlecoServerError a
+    readJobsetId' :: Text -> Either PlecoServerError JobsetId
+    readJobsetId' = fmap JobsetId . readEither'
+
+    readEvalId' :: Text -> Either PlecoServerError JobsetEvalId
+    readEvalId' = fmap JobsetEvalId . readEither'
+
+    readEither' :: (Read a) => Text -> Either PlecoServerError a
     readEither' = first ServerParsingError . readEither . toString
 
     payload' = words payload
