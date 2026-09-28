@@ -3,7 +3,6 @@ module Main (main) where
 import Hydra.Pleco.Client
   ( BaseUrl (..),
     EvalId (..),
-    JobsetId (..),
     PlecoClient,
     PlecoClientEnv,
     ProjectId (..),
@@ -12,7 +11,7 @@ import Hydra.Pleco.Client
     encodePretty,
     getEval,
     getHealth,
-    getJobset,
+    findJobset,
     getProject,
     listEvals,
     listJobsets,
@@ -20,12 +19,13 @@ import Hydra.Pleco.Client
     mkPlecoClientEnv,
     parseBaseUrl,
     runEchoServer,
-    runPlecoClient,
+    runPlecoClient, JobsetName(..),
   )
 
 import Network.Wai.Handler.Warp (Port)
 import Options.Applicative (Parser, ParserInfo, ReadM)
 import Options.Applicative qualified as Opt
+import qualified Data.Text as Text
 
 data GlobalOpts = GlobalOpts
   { optUrl :: !BaseUrl,
@@ -54,11 +54,11 @@ data ProjectsSubCommand
 
 data JobsetsSubCommand
   = CmdJobsetsList ProjectId
-  | CmdJobsetsView JobsetId
+  | CmdJobsetsView ProjectId JobsetName
   deriving stock (Eq, Ord, Show)
 
 data EvalsSubCommand
-  = CmdEvalsList JobsetId
+  = CmdEvalsList ProjectId JobsetName
   | CmdEvalsView EvalId
   deriving stock (Eq, Ord, Show)
 
@@ -99,10 +99,11 @@ runProjects (CmdProjectsView p) = runClient' (getProject p)
 
 runJobsets :: JobsetsSubCommand -> GlobalOpts -> IO ()
 runJobsets (CmdJobsetsList projectId) = runClient' (listJobsets projectId)
-runJobsets (CmdJobsetsView jobsetId) = runClient' (getJobset jobsetId)
+runJobsets (CmdJobsetsView projectId jobset) = 
+  runClient' (findJobset projectId jobset)
 
 runEvals :: EvalsSubCommand -> GlobalOpts -> IO ()
-runEvals (CmdEvalsList jobsetId) = runClient' (listEvals jobsetId)
+runEvals (CmdEvalsList project jobset) = runClient' (listEvals project jobset)
 runEvals (CmdEvalsView evalId) = runClient' (getEval evalId)
 
 globalOpts :: ParserInfo GlobalOpts
@@ -142,9 +143,9 @@ parseCommand =
   Opt.hsubparser $
     Opt.command "health" parseHealthCmd
       <> Opt.command "echo" parseEchoCmd
-      <> Opt.command "projects" projectsOpts
-      <> Opt.command "jobsets" jobsetsOpts
-      <> Opt.command "evals" evalsOpts
+      <> Opt.command "project" projectsOpts
+      <> Opt.command "jobset" jobsetsOpts
+      <> Opt.command "eval" evalsOpts
 
 parseHealthCmd :: ParserInfo Command
 parseHealthCmd = Opt.info parseHealthOpt healthCmdInfo
@@ -217,15 +218,23 @@ parseJobsetsListCmd =
 
 parseJobsetsViewCmd :: ParserInfo JobsetsSubCommand
 parseJobsetsViewCmd =
-  Opt.info (CmdJobsetsView <$> parseJobsetId) jobsetsViewCmdInfo
+  Opt.info (uncurry CmdJobsetsView <$> parseJobset) jobsetsViewCmdInfo
   where
     jobsetsViewCmdInfo = Opt.progDesc "View a Hydra jobset"
 
-parseJobsetId :: Parser JobsetId
-parseJobsetId =
-  Opt.argument (JobsetId <$> Opt.auto) $
-    Opt.metavar "ID"
-      <> Opt.help "Hydra jobset ID"
+parseJobset :: Parser (ProjectId, JobsetName)
+parseJobset =
+  Opt.argument jsSpec $
+    Opt.metavar "PROJECT:NAME"
+      <> Opt.help "Hydra jobset descriptor"
+
+  where
+    jsSpec :: ReadM (ProjectId, JobsetName)
+    jsSpec = Opt.maybeReader $ \spec -> do
+      let split = Text.splitOn ":" (toText spec)
+      case split of
+        [project, jobset] -> Just (ProjectId project, JobsetName jobset)
+        _ -> Nothing
 
 evalsOpts :: ParserInfo Command
 evalsOpts = Opt.info (CmdEvals <$> parseEvalsCmd) evalsCmdInfo
@@ -240,7 +249,7 @@ parseEvalsCmd =
 
 parseEvalsListCmd :: ParserInfo EvalsSubCommand
 parseEvalsListCmd =
-  Opt.info (CmdEvalsList <$> parseJobsetId) evalsListCmdInfo
+  Opt.info (uncurry CmdEvalsList <$> parseJobset) evalsListCmdInfo
   where
     evalsListCmdInfo = Opt.progDesc "List the evaluations of a Hydra jobset"
 

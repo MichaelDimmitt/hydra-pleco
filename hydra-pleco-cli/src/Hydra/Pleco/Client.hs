@@ -12,7 +12,7 @@ module Hydra.Pleco.Client
     getProject,
     listProjects,
     listJobsets,
-    getJobset,
+    findJobset,
     listEvals,
     getEval,
 
@@ -51,7 +51,7 @@ import Control.Exception (throwIO)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.Encode.Pretty qualified as Aeson
 import Network.HTTP.Client (defaultManagerSettings, newManager)
-import Servant.Client (AsClientT, BaseUrl, ClientEnv, ClientError, ClientM, (//))
+import Servant.Client (AsClientT, BaseUrl, ClientEnv, ClientError, ClientM, (//), (/:))
 import Servant.Client qualified as Servant
 import Servant.Client.Generic (genericClientHoist)
 
@@ -101,11 +101,17 @@ getProject = plecoClient // Api.apiProjects // Api.prjaGet
 listJobsets :: ProjectId -> PlecoClient [Jobset]
 listJobsets = plecoClient // Api.apiProjects // Api.prjaJobsets
 
-getJobset :: Api.JobsetId -> PlecoClient Jobset
-getJobset = plecoClient // Api.apiJobsets // Api.jsaGet
+findJobset :: Api.ProjectId -> Api.JobsetName -> PlecoClient (Maybe Jobset)
+findJobset projectId jobset = do
+  jobsets <- plecoClient // Api.apiProjects // Api.prjaJobsets /: projectId
+  pure $ find ((==jobset) . Api.jsName) jobsets
 
-listEvals :: Api.JobsetId -> PlecoClient [Eval]
-listEvals = plecoClient // Api.apiJobsets // Api.jsaEvals
+listEvals :: Api.ProjectId -> Api.JobsetName -> PlecoClient [Eval]
+listEvals projectId jobsetName = 
+  maybe (pure []) (getEvals . Api.jsId) =<< findJobset projectId jobsetName
+  where
+    getEvals :: Api.JobsetId -> PlecoClient [Eval]
+    getEvals = plecoClient // Api.apiJobsets // Api.jsaEvals
 
 getEval :: Api.EvalId -> PlecoClient Eval
 getEval = plecoClient // Api.apiEvals // Api.evaGet
