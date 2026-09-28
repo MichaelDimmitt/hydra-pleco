@@ -57,15 +57,6 @@ test *args:
       ".#checks.{{ system }}.hydra-pleco-server:test:db-tests" \
       ".#checks.{{ system }}.hydra-pleco-cli:test:tests"
 
-# Run the database test suite against an ephemeral database
-test-db *args:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    pgconn=$(pg_tmp -t | sed -n 's/[^@]*@\([^:]*\):\([^/]*\).*/host=\1 port=\2/p')
-    export PLECO_TEST_DATABASE_URL="$pgconn dbname=test"
-    export PLECO_TEST_HYDRA_SCHEMA=$(nix build --no-link --print-out-paths ".#hydra-schema")
-    cabal test hydra-pleco-server:test:db-tests {{ args }}
-
 # Run basic checks
 check-light *args:
     nix build \
@@ -82,3 +73,33 @@ check-light *args:
 # Run the full flake check (every check, all systems)
 check-full *args:
     nix flake check {{ args }}
+
+# Build all subprojects
+[group('cabal')]
+cabal-build *args:
+    cabal build all {{ args }}
+
+# Run the server executable (`just cabal-run -- --help`)
+[group('cabal')]
+cabal-run *args:
+    cabal run hydra-pleco-server:exe:hydra-pleco -- {{ args }}
+
+# Run the CLI (`just cabal-cli -- --help`)
+[group('cabal')]
+cabal-cli *args:
+    cabal run hydra-pleco-cli:exe:pleco -- {{ args }}
+
+# Run the database test suite against an ephemeral database
+[group('cabal')]
+cabal-test-db *args:
+    just cabal-test hydra-pleco-server:test:db-tests {{ args }}
+
+# Run the test suite(s)
+[group('cabal')]
+cabal-test target='all' *args:
+    #!/usr/bin/env bash
+    set -xeuo pipefail
+    pgconn=$(pg_tmp -t | sed -n 's/[^@]*@\([^:]*\):\([^/]*\).*/host=\1 port=\2/p')
+    export PLECO_TEST_DATABASE_URL="$pgconn dbname=test"
+    export PLECO_TEST_HYDRA_SCHEMA=$(nix build --no-link --print-out-paths ".#hydra-schema")
+    cabal test {{ target }} {{ args }}
