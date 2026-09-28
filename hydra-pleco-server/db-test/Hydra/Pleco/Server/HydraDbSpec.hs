@@ -1,6 +1,6 @@
 module Hydra.Pleco.Server.HydraDbSpec (spec) where
 
-import Hydra.Pleco.Server.DB (runSession, statement, jobsetEvalById, jobsetEvalsByJobset)
+import Hydra.Pleco.Server.DB (jobsetEvalById, jobsetEvalsByJobset, runSession, statement)
 import Hydra.Pleco.Server.DB.Hydra
   ( Jobset (..),
     JobsetEval (..),

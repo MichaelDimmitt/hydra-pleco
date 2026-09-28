@@ -3,15 +3,16 @@ module Main (main) where
 import Hydra.Pleco.Client
   ( BaseUrl (..),
     EvalId (..),
+    JobsetName (..),
     PlecoClient,
     PlecoClientEnv,
     ProjectId (..),
     Scheme (..),
     ToJSON,
     encodePretty,
+    findJobset,
     getEval,
     getHealth,
-    findJobset,
     getProject,
     listEvals,
     listJobsets,
@@ -19,13 +20,13 @@ import Hydra.Pleco.Client
     mkPlecoClientEnv,
     parseBaseUrl,
     runEchoServer,
-    runPlecoClient, JobsetName(..),
+    runPlecoClient,
   )
 
+import Data.Text qualified as Text
 import Network.Wai.Handler.Warp (Port)
 import Options.Applicative (Parser, ParserInfo, ReadM)
 import Options.Applicative qualified as Opt
-import qualified Data.Text as Text
 
 data GlobalOpts = GlobalOpts
   { optUrl :: !BaseUrl,
@@ -99,7 +100,7 @@ runProjects (CmdProjectsView p) = runClient' (getProject p)
 
 runJobsets :: JobsetsSubCommand -> GlobalOpts -> IO ()
 runJobsets (CmdJobsetsList projectId) = runClient' (listJobsets projectId)
-runJobsets (CmdJobsetsView projectId jobset) = 
+runJobsets (CmdJobsetsView projectId jobset) =
   runClient' (findJobset projectId jobset)
 
 runEvals :: EvalsSubCommand -> GlobalOpts -> IO ()
@@ -227,7 +228,6 @@ parseJobset =
   Opt.argument jsSpec $
     Opt.metavar "PROJECT:NAME"
       <> Opt.help "Hydra jobset descriptor"
-
   where
     jsSpec :: ReadM (ProjectId, JobsetName)
     jsSpec = Opt.maybeReader $ \spec -> do

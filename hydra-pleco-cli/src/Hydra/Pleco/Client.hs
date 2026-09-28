@@ -104,10 +104,10 @@ listJobsets = plecoClient // Api.apiProjects // Api.prjaJobsets
 findJobset :: Api.ProjectId -> Api.JobsetName -> PlecoClient (Maybe Jobset)
 findJobset projectId jobset = do
   jobsets <- plecoClient // Api.apiProjects // Api.prjaJobsets /: projectId
-  pure $ find ((==jobset) . Api.jsName) jobsets
+  pure $ find ((== jobset) . Api.jsName) jobsets
 
 listEvals :: Api.ProjectId -> Api.JobsetName -> PlecoClient [Eval]
-listEvals projectId jobsetName = 
+listEvals projectId jobsetName =
   maybe (pure []) (getEvals . Api.jsId) =<< findJobset projectId jobsetName
   where
     getEvals :: Api.JobsetId -> PlecoClient [Eval]

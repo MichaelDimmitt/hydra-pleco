@@ -18,6 +18,8 @@ import Data.Aeson ((.=))
 import Data.Aeson qualified as Aeson
 import Data.UUID qualified as UUID
 import Hasql.Pool (Pool)
+import Hydra.Pleco.Server.Evals (evalsHandler)
+import Hydra.Pleco.Server.Jobsets (jobsetsHandler)
 import Katip qualified
 import Katip.Wai (ApplicationT, Formatter, MiddlewareT, Request, Response)
 import Katip.Wai qualified as KatipWai
@@ -31,8 +33,6 @@ import Servant.Swagger.UI (swaggerSchemaUIServerT)
 import System.Clock (TimeSpec, toNanoSecs)
 import UnliftIO (MonadUnliftIO (..), bracket_)
 import UnliftIO.Async qualified as Async
-import Hydra.Pleco.Server.Evals (evalsHandler)
-import Hydra.Pleco.Server.Jobsets (jobsetsHandler)
 
 runServer :: Port -> PlecoServerEnv -> IO ()
 runServer port env = runPlecoServerT env $ do
