@@ -5,7 +5,7 @@ import Hydra.Pleco.Client.Gen qualified as Gen
 
 import Servant.Client (ClientEnv (..))
 import Test.Hspec
-import Test.Hspec.Hedgehog (hedgehog, forAll, tripping)
+import Test.Hspec.Hedgehog (forAll, hedgehog, tripping)
 
 spec :: Spec
 spec = describe "Hydra.Pleco.Client" $ do
@@ -17,7 +17,7 @@ spec = describe "Hydra.Pleco.Client" $ do
       baseUrl (pceClientEnv env) `shouldBe` baseUrl'
 
   describe "JobsetSpec" $ do
-    it "round-trips through parseJobset" $ 
+    it "round-trips through parseJobset" $
       hedgehog $ do
         jsSpec <- forAll Gen.jobsetSpec
         tripping jsSpec renderJobsetSpec parseJobsetSpec

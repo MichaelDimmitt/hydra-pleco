@@ -35,7 +35,7 @@ module Hydra.Pleco.Client
     Api.EvalId (..),
 
     -- * Utilities
-    JobsetSpec(..),
+    JobsetSpec (..),
     parseJobsetSpec,
     renderJobsetSpec,
 
@@ -48,18 +48,18 @@ module Hydra.Pleco.Client
     Aeson.encodePretty,
   ) where
 
-import Hydra.Pleco.Api (Eval, Health, HydraApi, Jobset, Project, ProjectId, JobsetName, EvalId)
+import Hydra.Pleco.Api (Eval, EvalId, Health, HydraApi, Jobset, JobsetName, Project, ProjectId)
 import Hydra.Pleco.Api qualified as Api
 import Hydra.Pleco.Client.EchoServer (runEchoServer)
 
 import Control.Exception (throwIO)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.Encode.Pretty qualified as Aeson
+import Data.Text qualified as Text
 import Network.HTTP.Client (defaultManagerSettings, newManager)
 import Servant.Client (AsClientT, BaseUrl, ClientEnv, ClientError, ClientM, (//), (/:))
 import Servant.Client qualified as Servant
 import Servant.Client.Generic (genericClientHoist)
-import qualified Data.Text as Text
 
 -- | Client application monad stack
 newtype PlecoClient a = PlecoClient {unPlecoClient :: ReaderT PlecoClientEnv ClientM a}
@@ -75,7 +75,7 @@ newtype PlecoClientEnv = PlecoClientEnv
   { pceClientEnv :: ClientEnv
   }
 
-data PlecoClientError 
+data PlecoClientError
   = PlecoClientError ClientError
   | PlecoCmdError Text
   | PlecoUnknownError
@@ -97,7 +97,7 @@ runPlecoClient env@PlecoClientEnv {..} action = do
   either throwIO pure res
 
 parseJobsetSpec :: Text -> Either Text JobsetSpec
-parseJobsetSpec spec = 
+parseJobsetSpec spec =
   case Text.splitOn ":" spec of
     [project, jobset] -> Right $ JobsetSpec (Api.ProjectId project) (Api.JobsetName jobset)
     _ -> Left $ "Cannot parse jobset spec `" <> spec <> "'"
@@ -133,7 +133,7 @@ listEvals jobset =
   maybe (pure []) getEvals =<< findJobset jobset
   where
     getEvals :: Api.Jobset -> PlecoClient [Eval]
-    getEvals Api.Jobset{jsId} = plecoClient // Api.apiJobsets // Api.jsaEvals /: jsId
+    getEvals Api.Jobset {jsId} = plecoClient // Api.apiJobsets // Api.jsaEvals /: jsId
 
 getEval :: EvalId -> PlecoClient Eval
 getEval = plecoClient // Api.apiEvals // Api.evaGet

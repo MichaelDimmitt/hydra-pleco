@@ -10,7 +10,8 @@ import Hydra.Pleco.Server.DB.Hydra
     eachProject,
     jobsetById,
     jobsetsByProject,
-    projectByName, jobsetsByProjectAndName,
+    jobsetsByProjectAndName,
+    projectByName,
   )
 
 import Hasql.Pool (Pool, UsageError)

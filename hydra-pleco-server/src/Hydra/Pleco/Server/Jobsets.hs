@@ -3,7 +3,7 @@ module Hydra.Pleco.Server.Jobsets
     listJobsetsHandler,
   ) where
 
-import Hydra.Pleco.Api (Jobset (..), JobsetId (..), JobsetsApi (..), ProjectId (..), JobsetName, unJobsetName)
+import Hydra.Pleco.Api (Jobset (..), JobsetId (..), JobsetName, JobsetsApi (..), ProjectId (..), unJobsetName)
 import Hydra.Pleco.Server.DB (jobsetById, runSession, statement)
 import Hydra.Pleco.Server.DB qualified as DB
 import Hydra.Pleco.Server.Evals (listEvalsHandler)
@@ -22,10 +22,10 @@ jobsetsHandler =
 listJobsetsHandler :: ProjectId -> Maybe JobsetName -> PlecoServerT Handler [Jobset]
 listJobsetsHandler (ProjectId prjName) jobset = do
   pool <- asks pseDbPool
-  
-  let stmt = 
+
+  let stmt =
         maybe
-          (DB.jobsetsByProject prjName) 
+          (DB.jobsetsByProject prjName)
           (DB.jobsetsByProjectAndName prjName . unJobsetName)
           jobset
 

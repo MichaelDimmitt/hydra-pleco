@@ -215,7 +215,7 @@ jobsetsByProject projectName =
 
 jobsetsByProjectAndName :: Text -> Text -> Statement () [Jobset Result]
 jobsetsByProjectAndName projectName jobsetName =
-  Rel8.run$
+  Rel8.run $
     Rel8.select $ do
       jobsets <- Rel8.each jobsetSchema
 
