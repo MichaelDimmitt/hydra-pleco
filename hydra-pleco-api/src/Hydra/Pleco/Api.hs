@@ -87,7 +87,12 @@ data WebhooksApi mode = WebhooksApi
 data ProjectsApi mode = ProjectsApi
   { prjaList :: mode :- Get '[JSON] [Project],
     prjaGet :: mode :- Capture "id" ProjectId :> Get '[JSON] Project,
-    prjaJobsets :: mode :- Capture "id" ProjectId :> "jobsets" :> Get '[JSON] [Jobset]
+    prjaJobsets
+      :: mode
+        :- Capture "id" ProjectId
+          :> "jobsets"
+          :> QueryParam "name" JobsetName
+          :> Get '[JSON] [Jobset]
   }
   deriving stock (Generic)
 

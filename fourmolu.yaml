@@ -19,4 +19,7 @@ fixities:
   # Rel8
   - "infixr 3 &&."
   - "infixr 4 ==."
+  # Servant
+  - "infixl 0 :-"
+  - "infixr 4 :>"
 unicode: never

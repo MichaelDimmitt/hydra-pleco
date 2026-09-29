@@ -99,7 +99,7 @@ runProjects CmdProjectsList = runClient' listProjects
 runProjects (CmdProjectsView p) = runClient' (getProject p)
 
 runJobsets :: JobsetsSubCommand -> GlobalOpts -> IO ()
-runJobsets (CmdJobsetsList projectId) = runClient' (listJobsets projectId)
+runJobsets (CmdJobsetsList projectId) = runClient' (listJobsets projectId Nothing)
 runJobsets (CmdJobsetsView jobset) =
   runClient' (findJobset jobset)
 

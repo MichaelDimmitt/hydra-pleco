@@ -3,8 +3,8 @@ module Hydra.Pleco.Server.Jobsets
     listJobsetsHandler,
   ) where
 
-import Hydra.Pleco.Api (Jobset (..), JobsetId (..), JobsetsApi (..), ProjectId (..))
-import Hydra.Pleco.Server.DB (jobsetById, jobsetsByProject, runSession, statement)
+import Hydra.Pleco.Api (Jobset (..), JobsetId (..), JobsetsApi (..), ProjectId (..), JobsetName, unJobsetName)
+import Hydra.Pleco.Server.DB (jobsetById, runSession, statement)
 import Hydra.Pleco.Server.DB qualified as DB
 import Hydra.Pleco.Server.Evals (listEvalsHandler)
 import Hydra.Pleco.Server.Jobsets.DB (fromJobset)
@@ -19,10 +19,17 @@ jobsetsHandler =
       jsaEvals = listEvalsHandler
     }
 
-listJobsetsHandler :: ProjectId -> PlecoServerT Handler [Jobset]
-listJobsetsHandler (ProjectId prjName) = do
+listJobsetsHandler :: ProjectId -> Maybe JobsetName -> PlecoServerT Handler [Jobset]
+listJobsetsHandler (ProjectId prjName) jobset = do
   pool <- asks pseDbPool
-  jobsets <- runSession pool $ statement () (jobsetsByProject prjName)
+  
+  let stmt = 
+        maybe
+          (DB.jobsetsByProject prjName) 
+          (DB.jobsetsByProjectAndName prjName . unJobsetName)
+          jobset
+
+  jobsets <- runSession pool $ statement () stmt
 
   pure $ map fromJobset jobsets
 

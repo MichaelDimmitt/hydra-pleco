@@ -12,6 +12,7 @@ module Hydra.Pleco.Server.DB.Hydra
     projectByName,
     jobsetById,
     jobsetsByProject,
+    jobsetsByProjectAndName,
     jobsetEvalById,
     jobsetEvalsByJobset,
     hydraNotifyChannels,
@@ -30,6 +31,7 @@ import Rel8
     Rel8able,
     Result,
     TableSchema,
+    (&&.),
     (==.),
   )
 import Rel8 qualified
@@ -209,6 +211,18 @@ jobsetsByProject projectName =
     Rel8.select $ do
       jobsets <- Rel8.each jobsetSchema
       Rel8.where_ $ jsProject jobsets ==. Rel8.lit projectName
+      pure jobsets
+
+jobsetsByProjectAndName :: Text -> Text -> Statement () [Jobset Result]
+jobsetsByProjectAndName projectName jobsetName =
+  Rel8.run$
+    Rel8.select $ do
+      jobsets <- Rel8.each jobsetSchema
+
+      Rel8.where_ $
+        jsProject jobsets ==. Rel8.lit projectName
+          &&. jsName jobsets ==. Rel8.lit jobsetName
+
       pure jobsets
 
 jobsetEvalById :: JobsetEvalId -> Statement () (JobsetEval Result)

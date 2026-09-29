@@ -10,7 +10,7 @@ import Hydra.Pleco.Server.DB.Hydra
     eachProject,
     jobsetById,
     jobsetsByProject,
-    projectByName,
+    projectByName, jobsetsByProjectAndName,
   )
 
 import Hasql.Pool (Pool, UsageError)
@@ -87,6 +87,11 @@ spec = describe "Hydra.Pleco.Server.DB.Hydra" $ do
     it "selects expected jobsets" $ \(_, pool) -> do
       jobsets <- runStatement pool (jobsetsByProject "pleco")
       map jsName jobsets `shouldMatchList` ["main", "staging"]
+
+  describe "jobsetsByProjectAndName" $
+    it "selects expected jobsets" $ \(_, pool) -> do
+      jobset <- runStatement pool (jobsetsByProjectAndName "pleco" "staging")
+      map jsName jobset `shouldMatchList` ["staging"]
 
   describe "jobsetEvalById" $
     it "decodes the scalar columns" $ \(_, pool) -> do
