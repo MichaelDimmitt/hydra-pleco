@@ -3,7 +3,7 @@ module Main (main) where
 import Hydra.Pleco.Client
   ( BaseUrl (..),
     EvalId (..),
-    JobsetName (..),
+    JobsetSpec,
     PlecoClient,
     PlecoClientEnv,
     ProjectId (..),
@@ -23,7 +23,7 @@ import Hydra.Pleco.Client
     runPlecoClient,
   )
 
-import Data.Text qualified as Text
+import Hydra.Pleco.Client qualified as Client
 import Network.Wai.Handler.Warp (Port)
 import Options.Applicative (Parser, ParserInfo, ReadM)
 import Options.Applicative qualified as Opt
@@ -55,11 +55,11 @@ data ProjectsSubCommand
 
 data JobsetsSubCommand
   = CmdJobsetsList ProjectId
-  | CmdJobsetsView ProjectId JobsetName
+  | CmdJobsetsView JobsetSpec
   deriving stock (Eq, Ord, Show)
 
 data EvalsSubCommand
-  = CmdEvalsList ProjectId JobsetName
+  = CmdEvalsList JobsetSpec
   | CmdEvalsView EvalId
   deriving stock (Eq, Ord, Show)
 
@@ -100,11 +100,11 @@ runProjects (CmdProjectsView p) = runClient' (getProject p)
 
 runJobsets :: JobsetsSubCommand -> GlobalOpts -> IO ()
 runJobsets (CmdJobsetsList projectId) = runClient' (listJobsets projectId)
-runJobsets (CmdJobsetsView projectId jobset) =
-  runClient' (findJobset projectId jobset)
+runJobsets (CmdJobsetsView jobset) =
+  runClient' (findJobset jobset)
 
 runEvals :: EvalsSubCommand -> GlobalOpts -> IO ()
-runEvals (CmdEvalsList project jobset) = runClient' (listEvals project jobset)
+runEvals (CmdEvalsList jobset) = runClient' (listEvals jobset)
 runEvals (CmdEvalsView evalId) = runClient' (getEval evalId)
 
 globalOpts :: ParserInfo GlobalOpts
@@ -219,22 +219,21 @@ parseJobsetsListCmd =
 
 parseJobsetsViewCmd :: ParserInfo JobsetsSubCommand
 parseJobsetsViewCmd =
-  Opt.info (uncurry CmdJobsetsView <$> parseJobset) jobsetsViewCmdInfo
+  Opt.info (CmdJobsetsView <$> parseJobsetSpec') jobsetsViewCmdInfo
   where
     jobsetsViewCmdInfo = Opt.progDesc "View a Hydra jobset"
 
-parseJobset :: Parser (ProjectId, JobsetName)
-parseJobset =
+parseJobsetSpec' :: Parser JobsetSpec
+parseJobsetSpec' =
   Opt.argument jsSpec $
     Opt.metavar "PROJECT:NAME"
       <> Opt.help "Hydra jobset descriptor"
   where
-    jsSpec :: ReadM (ProjectId, JobsetName)
-    jsSpec = Opt.maybeReader $ \spec -> do
-      let split = Text.splitOn ":" (toText spec)
-      case split of
-        [project, jobset] -> Just (ProjectId project, JobsetName jobset)
-        _ -> Nothing
+    jsSpec :: ReadM JobsetSpec
+    jsSpec = Opt.eitherReader $ withText Client.parseJobsetSpec
+
+    withText :: (Text -> Either Text a) -> String -> Either String a
+    withText f = first toString . f . toText
 
 evalsOpts :: ParserInfo Command
 evalsOpts = Opt.info (CmdEvals <$> parseEvalsCmd) evalsCmdInfo
@@ -249,7 +248,7 @@ parseEvalsCmd =
 
 parseEvalsListCmd :: ParserInfo EvalsSubCommand
 parseEvalsListCmd =
-  Opt.info (uncurry CmdEvalsList <$> parseJobset) evalsListCmdInfo
+  Opt.info (CmdEvalsList <$> parseJobsetSpec') evalsListCmdInfo
   where
     evalsListCmdInfo = Opt.progDesc "List the evaluations of a Hydra jobset"
 

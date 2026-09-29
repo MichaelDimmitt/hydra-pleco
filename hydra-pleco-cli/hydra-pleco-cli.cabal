@@ -69,6 +69,18 @@ library
     wai,
     warp,
 
+library testlib
+  import: common-options
+  hs-source-dirs: testlib
+  visibility: public
+  exposed-modules:
+    Hydra.Pleco.Client.Gen
+
+  build-depends:
+    hedgehog,
+    hydra-pleco-api:testlib,
+    hydra-pleco-cli,
+
 executable pleco
   import: common-options
   hs-source-dirs: app
@@ -92,8 +104,11 @@ test-suite tests
     Hydra.Pleco.CliSpec
 
   build-depends:
+    hedgehog,
     hspec,
+    hspec-hedgehog,
     hydra-pleco-cli,
+    hydra-pleco-cli:testlib,
     optparse-applicative,
     servant,
     servant-client,

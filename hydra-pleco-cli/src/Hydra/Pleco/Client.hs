@@ -34,6 +34,11 @@ module Hydra.Pleco.Client
     Api.Eval (..),
     Api.EvalId (..),
 
+    -- * Utilities
+    JobsetSpec(..),
+    parseJobsetSpec,
+    renderJobsetSpec,
+
     -- * Re-exports
     BaseUrl (..),
     Servant.Scheme (..),
@@ -43,7 +48,7 @@ module Hydra.Pleco.Client
     Aeson.encodePretty,
   ) where
 
-import Hydra.Pleco.Api (Eval, Health, HydraApi, Jobset, Project, ProjectId)
+import Hydra.Pleco.Api (Eval, Health, HydraApi, Jobset, Project, ProjectId, JobsetName, EvalId)
 import Hydra.Pleco.Api qualified as Api
 import Hydra.Pleco.Client.EchoServer (runEchoServer)
 
@@ -54,6 +59,7 @@ import Network.HTTP.Client (defaultManagerSettings, newManager)
 import Servant.Client (AsClientT, BaseUrl, ClientEnv, ClientError, ClientM, (//), (/:))
 import Servant.Client qualified as Servant
 import Servant.Client.Generic (genericClientHoist)
+import qualified Data.Text as Text
 
 -- | Client application monad stack
 newtype PlecoClient a = PlecoClient {unPlecoClient :: ReaderT PlecoClientEnv ClientM a}
@@ -69,9 +75,16 @@ newtype PlecoClientEnv = PlecoClientEnv
   { pceClientEnv :: ClientEnv
   }
 
-newtype PlecoClientError = PlecoClientError ClientError
+data PlecoClientError 
+  = PlecoClientError ClientError
+  | PlecoCmdError Text
+  | PlecoUnknownError
   deriving stock (Eq, Show)
-  deriving newtype (Exception)
+
+instance Exception PlecoClientError
+
+data JobsetSpec = JobsetSpec ProjectId JobsetName
+  deriving stock (Eq, Ord, Show)
 
 mkPlecoClientEnv :: BaseUrl -> IO PlecoClientEnv
 mkPlecoClientEnv url = do
@@ -82,6 +95,15 @@ runPlecoClient :: PlecoClientEnv -> PlecoClient a -> IO a
 runPlecoClient env@PlecoClientEnv {..} action = do
   res <- Servant.runClientM (runReaderT (unPlecoClient action) env) pceClientEnv
   either throwIO pure res
+
+parseJobsetSpec :: Text -> Either Text JobsetSpec
+parseJobsetSpec spec = 
+  case Text.splitOn ":" spec of
+    [project, jobset] -> Right $ JobsetSpec (Api.ProjectId project) (Api.JobsetName jobset)
+    _ -> Left $ "Cannot parse jobset spec `" <> spec <> "'"
+
+renderJobsetSpec :: JobsetSpec -> Text
+renderJobsetSpec (JobsetSpec prj js) = Api.unProjectId prj <> ":" <> Api.unJobsetName js
 
 plecoClient :: HydraApi (AsClientT PlecoClient)
 plecoClient = genericClientHoist hoistClientM
@@ -101,17 +123,17 @@ getProject = plecoClient // Api.apiProjects // Api.prjaGet
 listJobsets :: ProjectId -> PlecoClient [Jobset]
 listJobsets = plecoClient // Api.apiProjects // Api.prjaJobsets
 
-findJobset :: Api.ProjectId -> Api.JobsetName -> PlecoClient (Maybe Jobset)
-findJobset projectId jobset = do
+findJobset :: JobsetSpec -> PlecoClient (Maybe Jobset)
+findJobset (JobsetSpec projectId jobset) = do
   jobsets <- plecoClient // Api.apiProjects // Api.prjaJobsets /: projectId
   pure $ find ((== jobset) . Api.jsName) jobsets
 
-listEvals :: Api.ProjectId -> Api.JobsetName -> PlecoClient [Eval]
-listEvals projectId jobsetName =
-  maybe (pure []) (getEvals . Api.jsId) =<< findJobset projectId jobsetName
+listEvals :: JobsetSpec -> PlecoClient [Eval]
+listEvals jobset =
+  maybe (pure []) getEvals =<< findJobset jobset
   where
-    getEvals :: Api.JobsetId -> PlecoClient [Eval]
-    getEvals = plecoClient // Api.apiJobsets // Api.jsaEvals
+    getEvals :: Api.Jobset -> PlecoClient [Eval]
+    getEvals Api.Jobset{jsId} = plecoClient // Api.apiJobsets // Api.jsaEvals /: jsId
 
-getEval :: Api.EvalId -> PlecoClient Eval
+getEval :: EvalId -> PlecoClient Eval
 getEval = plecoClient // Api.apiEvals // Api.evaGet
