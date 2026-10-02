@@ -116,29 +116,17 @@ ______________________________________________________________________
 
 ### 2.1 Record fields: short type prefix
 
-There is no `DuplicateRecordFields`, so every field starts with a short prefix taken from
-its type name. Reuse the existing prefix; invent one in the same style for new types.
+There is no `DuplicateRecordFields`, so every field starts with a short (2–4 letter)
+prefix derived from its type name. For an existing type, read its definition and reuse its
+prefix. Never guess. For a new type, pick a prefix in one of these styles:
 
-| Type | Prefix | Example |
-|---|---|---|
-| `Project` (api & db) | `prj` | `prjDisplayName` |
-| `Jobset` (api & db) | `js` | `jsCheckInterval` |
-| `Eval` (api) | `ev` | `evNumBuilds` |
-| `JobsetEval` (db) | `jse` | `jseNumBuilds` |
-| `JobsetEvent` | `je` | `jeEventType` |
-| `Health` | `hl` | `hlStatus` |
-| `Subscription` | `sub` | `subUrl` |
-| `PlecoServerEnv` | `pse` | `pseDbPool` |
-| `PlecoClientEnv` | `pce` | `pceClientEnv` |
-| `HydraApi` | `api` | `apiProjects` |
-| `HydraApp` | `app` | `appDocs` |
-| `ProjectsApi` | `prja` | `prjaList` |
-| `JobsetsApi` | `jsa` | `jsaEvals` |
-| `EvalsApi` | `eva` | `evaGet` |
-| `WebhooksApi` | `wha` | `whaSubscribe` |
-| CLI `GlobalOpts` / server `Options` | `opt` | `optUrl`, `optPort` |
-| `EchoCmdOpts` | `echoOpt` | `echoOptPort` |
-| `TestDb` | `td` | `tdSchema` |
+- **Truncation**: `Project` → `prjDisplayName`, `Subscription` → `subUrl`
+- **Initials**: `PlecoServerEnv` → `pseDbPool`, `JobsetEvent` → `jeEventType`
+- **Route records** add `a` to the resource prefix: `ProjectsApi` → `prjaList`, `JobsetsApi` → `jsaEvals`
+
+The API and DB versions of a resource may use **different** prefixes: `Api.Eval` uses
+`ev` (`evNumBuilds`) while the DB row `JobsetEval` uses `jse` (`jseNumBuilds`). Check
+which layer you are in.
 
 Route-record fields use the verbs `List`, `Get`, or a sub-resource name: `prjaList`,
 `prjaGet`, `prjaJobsets`.
